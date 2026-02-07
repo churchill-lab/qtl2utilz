@@ -16,7 +16,7 @@ markers_sort(markers, chr_col = "chr", pos_col = "pos", marker_col = "marker")
 \item{marker_col}{Name of the column containing marker IDs (used for ties).}
 }
 \value{
-The data frame \code{df} with rows reordered. No columns are added
+The data frame \code{markers} with rows reordered. No columns are added
   or removed.
 }
 \description{

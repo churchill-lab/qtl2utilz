@@ -5,7 +5,7 @@
 \alias{positions_to_bp.default}
 \alias{positions_to_bp.numeric}
 \alias{positions_to_bp.data.frame}
-\title{Convert genomic positions to base pairs}
+\title{Convert genomic positions to base pairs.}
 \usage{
 positions_to_bp(x, ...)
 
@@ -20,7 +20,7 @@ positions_to_bp(x, ...)
 
 \item{...}{Arguments passed to methods (e.g. \code{pos_col}, \code{unit}).}
 
-\item{unit}{\code{"auto"} (infer from values), \code{"Mb"}, or \code{"bp"}.}
+\item{unit}{\code{'auto'} (infer from values), \code{'Mb'}, or \code{'bp'}.}
 
 \item{pos_col}{Name of the column in \code{x} containing positions (for
 data frame method).}
@@ -32,10 +32,7 @@ For \code{numeric}: a numeric vector in bp. For \code{data.frame}:
 \description{
 Generic function to convert genomic positions to base pairs (bp). Supports
 numeric vectors and data frames (updating a position column in place).
-With \code{unit = "auto"}, units are inferred: if the maximum position is
+With \code{unit = 'auto'}, units are inferred: if the maximum position is
 less than 2000, values are treated as Mb and multiplied by 1e6; otherwise
 treated as bp and returned unchanged.
-}
-\seealso{
-\code{\link{genoprobs_sync_markers}} (uses this for marker maps)
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/genoprobs-interpolate.R
 \name{genoprobs_interpolate}
 \alias{genoprobs_interpolate}
-\title{Interpolate genoprobs to a new marker map}
+\title{Interpolate genoprobs to a new marker map.}
 \usage{
 genoprobs_interpolate(probs1, markers1, markers2)
 }
@@ -27,10 +27,4 @@ the probabilities onto a second marker map (e.g. from MUGA or a different
 array). Linear interpolation in base-pair position is used per chromosome.
 If marker positions are in Mb (max < 200), they are converted to bp
 internally.
-}
-\details{
-\code{probs1} and \code{markers1} must have the same length (chromosomes).
-For each chromosome, \code{interpolate_chromosome} is called. Attributes
-(\code{crosstype}, \code{is_x_chr}, \code{alleles}, \code{alleleprobs}) and
-class are copied from \code{probs1}.
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/genoprobs-utils.R
 \name{detect_position_units_df}
 \alias{detect_position_units_df}
-\title{Detect position units from a data frame column}
+\title{Detect position units from a data frame column.}
 \usage{
 detect_position_units_df(data, pos_col = "pos")
 }
@@ -12,10 +12,9 @@ detect_position_units_df(data, pos_col = "pos")
 \item{pos_col}{Name of the position column.}
 }
 \value{
-Character string \code{"Mb"} or \code{"bp"}.
+Character string \code{'Mb'} or \code{'bp'}.
 }
 \description{
 Convenience wrapper: extracts \code{pos_col} and calls
 \code{detect_position_units_vec}. Not exported.
 }
-\keyword{internal}

@@ -2,21 +2,20 @@
 % Please edit documentation in R/genoprobs-utils.R
 \name{positions_vec_to_bp}
 \alias{positions_vec_to_bp}
-\title{Convert a position vector to base pairs}
+\title{Convert a position vector to base pairs.}
 \usage{
 positions_vec_to_bp(pos, unit = c("auto", "Mb", "bp"))
 }
 \arguments{
 \item{pos}{Numeric vector of positions.}
 
-\item{unit}{\code{"auto"}, \code{"Mb"}, or \code{"bp"}.}
+\item{unit}{\code{'auto'}, \code{'Mb'}, or \code{'bp'}.}
 }
 \value{
 Numeric vector of positions in bp.
 }
 \description{
 Single source of truth for converting a numeric vector to bp. With
-\code{unit = "auto"}, calls \code{detect_position_units_vec} to decide.
+\code{unit = 'auto'}, calls \code{detect_position_units_vec} to decide.
 Not exported.
 }
-\keyword{internal}

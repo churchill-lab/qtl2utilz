@@ -104,7 +104,7 @@ genoprobs_interpolate = function(probs1, markers1, markers2) {
         markers2 = lapply(markers2, '*', 1e6)
     }
 
-    new_probs1        <- vector("list", length(probs1))
+    new_probs1        <- vector('list', length(probs1))
     names(new_probs1) <- names(probs1)
 
     # interpolate each chromosome from markers1 positions to markers2 positions

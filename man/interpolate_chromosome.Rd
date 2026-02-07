@@ -2,7 +2,7 @@
 % Please edit documentation in R/genoprobs-interpolate.R
 \name{interpolate_chromosome}
 \alias{interpolate_chromosome}
-\title{Interpolate genoprobs for one chromosome to new marker positions}
+\title{Interpolate genoprobs for one chromosome to new marker positions.}
 \usage{
 interpolate_chromosome(pr1, mkr1, mkr2)
 }
@@ -24,4 +24,3 @@ Linearly interpolate founder probabilities from the marker positions in
 \code{pr1} to the positions in \code{mkr2}. Positions must be in base pairs.
 Used internally by \code{genoprobs_interpolate}; not exported.
 }
-\keyword{internal}

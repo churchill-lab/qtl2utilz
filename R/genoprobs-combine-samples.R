@@ -21,7 +21,7 @@
 #'   \item{genoprobs}{Combined calc_genoprobs object (union of samples, same chromosomes and markers).}
 #'   \item{union_samples}{Character vector of sample IDs in the result.}
 #'   \item{duplicates}{Character vector of sample IDs that appeared in both inputs.}
-#'   \item{dropped_from_2_due_to_duplicates}{When \code{duplicates = "first"}, samples from \code{genoprobs_2} not added because they were already in \code{genoprobs_1}.}
+#'   \item{dropped_from_2_due_to_duplicates}{When \code{duplicates = 'first'}, samples from \code{genoprobs_2} not added because they were already in \code{genoprobs_1}.}
 #'   \item{added_from_2}{Sample IDs that came from \code{genoprobs_2} only.}
 #'
 #' @export
@@ -43,8 +43,8 @@ genoprobs_combine_samples <- function(genoprobs_1,
     chr2 <- names(gp2)
     if(!setequal(chr1, chr2)) {
         stop(sprintf('Chromosome sets differ!\nOnly in genoprobs_1: %s\nOnly in genoprobs_2: %s',
-                     paste(setdiff(chr1, chr2), collapse = ", "),
-                     paste(setdiff(chr2, chr1), collapse = ", ")))
+                     paste(setdiff(chr1, chr2), collapse = ', '),
+                     paste(setdiff(chr2, chr1), collapse = ', ')))
     }
 
     # use a consistent chromosome order (from genoprobs_1); align gp2 to it.

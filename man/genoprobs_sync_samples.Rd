@@ -2,7 +2,7 @@
 % Please edit documentation in R/genoprobs-sync-samples.R
 \name{genoprobs_sync_samples}
 \alias{genoprobs_sync_samples}
-\title{Align samples across two genoprobs objects}
+\title{Align samples across two genoprobs objects.}
 \usage{
 genoprobs_sync_samples(genoprobs_1, genoprobs_2, sort = TRUE)
 }
@@ -30,7 +30,4 @@ comparisons so that both objects have the same samples in the same order.
 Only overlapping chromosomes are considered. A sample is included only if it
 appears on every common chromosome in both objects. Attributes and class of
 each genoprobs are preserved in the returned subsets.
-}
-\seealso{
-\code{\link{genoprobs_correlate}}, \code{\link{genoprobs_sync_markers}}
 }

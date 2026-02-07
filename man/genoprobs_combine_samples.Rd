@@ -35,7 +35,7 @@ A list with components:
   \item{genoprobs}{Combined calc_genoprobs object (union of samples, same chromosomes and markers).}
   \item{union_samples}{Character vector of sample IDs in the result.}
   \item{duplicates}{Character vector of sample IDs that appeared in both inputs.}
-  \item{dropped_from_2_due_to_duplicates}{When \code{duplicates = "first"}, samples from \code{genoprobs_2} not added because they were already in \code{genoprobs_1}.}
+  \item{dropped_from_2_due_to_duplicates}{When \code{duplicates = 'first'}, samples from \code{genoprobs_2} not added because they were already in \code{genoprobs_1}.}
   \item{added_from_2}{Sample IDs that came from \code{genoprobs_2} only.}
 }
 \description{

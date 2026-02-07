@@ -2,12 +2,12 @@
 % Please edit documentation in R/genoprobs-utils.R
 \name{extract_chr_list}
 \alias{extract_chr_list}
-\title{Extract genoprobs as a plain list by chromosome}
+\title{Extract genoprobs as a plain list by chromosome.}
 \usage{
 extract_chr_list(genoprobs)
 }
 \arguments{
-\item{genoprobs}{qtl2-style genoprobs (named list of 3D arrays).}
+\item{genoprobs}{R/qtl2 calc_genoprobs object.}
 }
 \value{
 A plain list (no extra class) with names = chromosome names and
@@ -18,4 +18,3 @@ Copies each chromosome array from a qtl2-style genoprobs object into a
 plain list with the same names. Used to avoid subclass subsetting behavior
 when modifying or combining genoprobs. Not exported.
 }
-\keyword{internal}

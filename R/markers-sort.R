@@ -5,13 +5,13 @@
 #' contigs in a stable order. Used by \code{markers_sort}. Not exported.
 #'
 #' @param chr Character (or coercible) vector of chromosome names (e.g.
-#'   \code{"1"}, \code{"X"}, \code{"chr2"}).
+#'   \code{'1'}, \code{'X'}, \code{'chr2'}).
 #'
 #' @return Numeric vector of ranks with the same length as \code{chr}.
-chr_rank <- function(chr) {    
+chr_rank <- function(chr) {
     x <- toupper(as.character(chr))
-    # drop leading "chr" for consistent comparison
-    x <- gsub('^CHR', '', x)  
+    # drop leading 'chr' for consistent comparison
+    x <- gsub('^CHR', '', x)
 
     # normalize mitochondria naming so M/MTDNA/MITO all sort together
     x[x %in% c('M', 'MTDNA', 'MITO')] <- 'MT'
@@ -47,14 +47,14 @@ chr_rank <- function(chr) {
 #' @param pos_col Name of the column containing positions (numeric).
 #' @param marker_col Name of the column containing marker IDs (used for ties).
 #'
-#' @return The data frame \code{df} with rows reordered. No columns are added
+#' @return The data frame \code{markers} with rows reordered. No columns are added
 #'   or removed.
 #'
 #' @export
 markers_sort <- function(markers, chr_col = 'chr', pos_col = 'pos', marker_col = 'marker') {
     # order by chromosome rank, then position, then marker name (ties deterministic)
-    o <- order(chr_rank(df[[chr_col]]),
-               df[[pos_col]],
-               as.character(df[[marker_col]]))
+    o <- order(chr_rank(markers[[chr_col]]),
+               markers[[pos_col]],
+               as.character(markers[[marker_col]]))
     markers[o, , drop = FALSE]
 }

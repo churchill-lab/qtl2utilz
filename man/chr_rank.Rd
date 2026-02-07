@@ -2,13 +2,13 @@
 % Please edit documentation in R/markers-sort.R
 \name{chr_rank}
 \alias{chr_rank}
-\title{Rank chromosomes for ordering}
+\title{Rank chromosomes for ordering.}
 \usage{
 chr_rank(chr)
 }
 \arguments{
 \item{chr}{Character (or coercible) vector of chromosome names (e.g.
-\code{"1"}, \code{"X"}, \code{"chr2"}).}
+\code{'1'}, \code{'X'}, \code{'chr2'}).}
 }
 \value{
 Numeric vector of ranks with the same length as \code{chr}.

@@ -12,7 +12,7 @@
 #' @param marker_col Name of the column in \code{markers_df} containing marker IDs.
 #' @param chr_col Name of the chromosome column.
 #' @param pos_col Name of the position column.
-#' @param unit Position unit: \code{"auto"} (detect from values), \code{"Mb"}, or \code{"bp"}.
+#' @param unit Position unit: \code{'auto'} (detect from values), \code{'Mb'}, or \code{'bp'}.
 #'
 #' @return A list with components:
 #'   \item{genoprobs}{Genoprobs restricted to common chromosomes and
@@ -24,12 +24,6 @@
 #'     \code{markers_df} but not in genoprobs.}
 #'   \item{dropped_markers_not_in_map}{Per-chromosome list of marker IDs in
 #'     genoprobs but not in \code{markers_df}.}
-#'
-#' @details
-#' Only chromosomes present in both \code{genoprobs} and \code{markers_df} are
-#' returned. Within each chromosome, only markers that appear in both are kept,
-#' and their order follows \code{markers_df} after \code{markers_sort}. The
-#' returned \code{genoprobs} has the same attributes and class as the input.
 #'
 #' @export
 genoprobs_sync_markers <- function(genoprobs,

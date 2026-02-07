@@ -2,7 +2,7 @@
 % Please edit documentation in R/genoprobs-sync-markers.R
 \name{genoprobs_sync_markers}
 \alias{genoprobs_sync_markers}
-\title{Synchronize genoprobs to a marker data frame}
+\title{Synchronize genoprobs to a marker data frame.}
 \usage{
 genoprobs_sync_markers(
   genoprobs,
@@ -25,7 +25,7 @@ position columns (see \code{marker_col}, \code{chr_col}, \code{pos_col}).}
 
 \item{pos_col}{Name of the position column.}
 
-\item{unit}{Position unit: \code{"auto"} (detect from values), \code{"Mb"}, or \code{"bp"}.}
+\item{unit}{Position unit: \code{'auto'} (detect from values), \code{'Mb'}, or \code{'bp'}.}
 }
 \value{
 A list with components:
@@ -45,14 +45,4 @@ that appear in \code{markers_df}, in the order defined by the data frame
 (after sorting by chromosome and position). Useful to align genoprobs with
 a standard marker set (e.g. for correlation with another platform) or to
 drop markers not in a given map. Positions are converted to bp if needed.
-}
-\details{
-Only chromosomes present in both \code{genoprobs} and \code{markers_df} are
-returned. Within each chromosome, only markers that appear in both are kept,
-and their order follows \code{markers_df} after \code{markers_sort}. The
-returned \code{genoprobs} has the same attributes and class as the input.
-}
-\seealso{
-\code{\link{positions_to_bp}}, \code{\link{markers_sort}},
-  \code{\link{genoprobs_correlate}}
 }

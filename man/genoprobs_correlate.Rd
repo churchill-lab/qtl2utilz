@@ -2,7 +2,7 @@
 % Please edit documentation in R/genoprobs-correlate.R
 \name{genoprobs_correlate}
 \alias{genoprobs_correlate}
-\title{Correlate genoprobs between two objects}
+\title{Correlate genoprobs between two objects.}
 \usage{
 genoprobs_correlate(
   genoprobs_1,
@@ -12,15 +12,15 @@ genoprobs_correlate(
 )
 }
 \arguments{
-\item{genoprobs_1}{First genoprobs object (list of 3D arrays by chromosome).}
+\item{genoprobs_1}{First R/qtl2 calc_genoprobs object.}
 
-\item{genoprobs_2}{Second genoprobs object (same structure).}
+\item{genoprobs_2}{Second R/qtl2 calc_genoprobs object (same structure).}
 
 \item{threshold}{Numeric; correlations below this value are flagged in
 \code{flag_low} (default 0.80).}
 
 \item{method}{Correlation method passed to \code{\link[stats]{cor}}
-(e.g. \code{"pearson"}, \code{"spearman"}).}
+(e.g. \code{'pearson'}, \code{'spearman'}).}
 }
 \value{
 A data frame with columns:
@@ -34,13 +34,4 @@ Compute per-sample correlation between two qtl2-style genoprobs objects
 sample, all founder probabilities across all chromosomes are concatenated
 and correlated. Use \code{genoprobs_sync_markers} and \code{genoprobs_sync_samples}
 first so both objects share the same markers and samples if needed.
-}
-\details{
-Only overlapping chromosomes and overlapping samples are used. For each
-sample, \code{genoprobs_1} and \code{genoprobs_2} are flattened to vectors
-(samples x founders x markers) and correlated with pairwise complete
-observations.
-}
-\seealso{
-\code{\link{genoprobs_sync_markers}}, \code{\link{genoprobs_sync_samples}}
 }

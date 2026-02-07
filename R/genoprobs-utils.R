@@ -26,7 +26,7 @@ extract_chr_list <- function(genoprobs) {
     }
 
     # make sure result is a plain list with no extra class
-    class(out) <- "list"
+    class(out) <- 'list'
     out
 }
 
@@ -43,8 +43,12 @@ detect_position_units_vec <- function(pos) {
     pos <- as.numeric(pos)
     pos <- pos[is.finite(pos)]
     if(!length(pos)) stop('No finite positions found in vector')
-    # If max position < 2000, assume Mb (mouse chr in Mb); else assume bp.
-    if(max(pos, na.rm = TRUE) < 2000) 'Mb' else 'bp'
+    # if max position < 2000, assume Mb (mouse chr in Mb); else assume bp
+    if(max(pos, na.rm = TRUE) < 2000) {
+        'Mb'
+    } else {
+        'bp'
+    }
 }
 
 #' Detect position units from a data frame column.

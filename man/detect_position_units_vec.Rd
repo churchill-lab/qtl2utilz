@@ -2,7 +2,7 @@
 % Please edit documentation in R/genoprobs-utils.R
 \name{detect_position_units_vec}
 \alias{detect_position_units_vec}
-\title{Detect position units from a numeric vector}
+\title{Detect position units from a numeric vector.}
 \usage{
 detect_position_units_vec(pos)
 }
@@ -10,11 +10,10 @@ detect_position_units_vec(pos)
 \item{pos}{Numeric vector of genomic positions.}
 }
 \value{
-Character string \code{"Mb"} or \code{"bp"}.
+Character string \code{'Mb'} or \code{'bp'}.
 }
 \description{
-If the maximum finite position is less than 2000, returns \code{"Mb"};
-otherwise returns \code{"bp"}. Used internally for \code{unit = "auto"}.
+If the maximum finite position is less than 2000, returns 'Mb';
+otherwise returns 'bp'. Used internally for 'unit = 'auto''.
 Not exported.
 }
-\keyword{internal}
