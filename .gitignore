@@ -1,5 +1,6 @@
-# Project data (large or local files)
+# Project data and generated output
 data/
+output/
 
 # R and RStudio
 .Rhistory

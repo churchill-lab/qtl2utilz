@@ -14,9 +14,9 @@ genoprobs_combine_samples(
 )
 }
 \arguments{
-\item{genoprobs_1}{First genoprobs object (list of 3D arrays by chromosome).}
+\item{genoprobs_1}{First calc_genoprob object (list of 3D arrays by chromosome).}
 
-\item{genoprobs_2}{Second genoprobs object (same structure as \code{genoprobs_1}).}
+\item{genoprobs_2}{Second calc_genoprob object (same structure as \code{genoprobs_1}).}
 
 \item{samples_1}{Character vector of sample IDs to keep from \code{genoprobs_1};
 \code{NULL} means use all samples.}
@@ -26,27 +26,22 @@ genoprobs_combine_samples(
 
 \item{sort}{If \code{TRUE}, order the union of samples alphabetically.}
 
-\item{duplicates}{If \code{"first"}, samples present in both are taken from
+\item{duplicates}{If \code{'first'}, samples present in both are taken from
 \code{genoprobs_1} and not duplicated from \code{genoprobs_2}. If
-\code{"error"}, an error is raised when any sample appears in both.}
+\code{'error'}, an error is raised when any sample appears in both.}
 }
 \value{
 A list with components:
-  \item{genoprobs}{Combined genoprobs object (union of samples, same chromosomes and markers).}
+  \item{genoprobs}{Combined calc_genoprobs object (union of samples, same chromosomes and markers).}
   \item{union_samples}{Character vector of sample IDs in the result.}
   \item{duplicates}{Character vector of sample IDs that appeared in both inputs.}
   \item{dropped_from_2_due_to_duplicates}{When \code{duplicates = "first"}, samples from \code{genoprobs_2} not added because they were already in \code{genoprobs_1}.}
   \item{added_from_2}{Sample IDs that came from \code{genoprobs_2} only.}
 }
 \description{
-Combine two qtl2-style genoprobs objects by taking the union of samples.
+Combine two R/qtl2 calc_genoprob objects by taking the union of samples.
 Chromosomes, founder/strain names, and marker names must match exactly
 between the two objects. Useful for merging genoprobs from the same
 cross computed in separate batches or from different marker sets that
 have been synchronized first.
-}
-\details{
-Chromosome sets must be identical (same names). For each chromosome, founder
-names (columns) and marker names (third dimension) must match. Attributes and
-class of the result are taken from \code{genoprobs_1}.
 }

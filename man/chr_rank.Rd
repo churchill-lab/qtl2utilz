@@ -18,4 +18,3 @@ Returns a numeric rank for each chromosome name so that standard autosomes
 (1–19) come first in numeric order, then X, Y, XY, MT, then any other
 contigs in a stable order. Used by \code{markers_sort}. Not exported.
 }
-\keyword{internal}

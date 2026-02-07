@@ -4,10 +4,10 @@
 \alias{markers_sort}
 \title{Sort a data frame of genetic markers by chromosome and position}
 \usage{
-markers_sort(df, chr_col = "chr", pos_col = "pos", marker_col = "marker")
+markers_sort(markers, chr_col = "chr", pos_col = "pos", marker_col = "marker")
 }
 \arguments{
-\item{df}{Data frame containing marker information.}
+\item{markers}{Data frame containing marker information.}
 
 \item{chr_col}{Name of the column containing chromosome identifiers.}
 
@@ -22,7 +22,4 @@ The data frame \code{df} with rows reordered. No columns are added
 \description{
 Sorts rows by chromosome (using standard order 1–19, X, Y, XY, MT, then
 others), then by position, then by marker name for deterministic tie-breaking.
-}
-\seealso{
-\code{\link{genoprobs_sync_markers}} (uses this for map order)
 }

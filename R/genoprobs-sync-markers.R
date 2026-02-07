@@ -1,34 +1,4 @@
-#' Extract genoprobs as a plain list by chromosome
-#'
-#' Copies each chromosome array from a qtl2-style genoprobs object into a
-#' plain list with the same names. Used to avoid subclass subsetting behavior
-#' when modifying or combining genoprobs. Not exported.
-#'
-#' @param genoprobs qtl2-style genoprobs (named list of 3D arrays).
-#'
-#' @return A plain list (no extra class) with names = chromosome names and
-#'   elements = the corresponding 3D arrays.
-#'
-#' @keywords internal
-extract_chr_list <- function(genoprobs) {
-    chrs <- names(genoprobs)
-    if(is.null(chrs) || !length(chrs))
-        stop("genoprobs has no chromosome names; cannot extract.")
-
-    # Build a plain list by extracting each chromosome with [[ ]] so we avoid
-    # subclass subsetting (e.g. [) that can alter structure or class.
-    out <- setNames(vector("list", length(chrs)), chrs)
-    for(chr in chrs) {
-        out[[chr]] <- genoprobs[[chr]]
-    }
-
-    # Ensure result is a plain list with no extra class.
-    class(out) <- "list"
-    out
-}
-
-
-#' Synchronize genoprobs to a marker data frame
+#' Synchronize genoprobs to a marker data frame.
 #'
 #' Subset and reorder genoprobs so that each chromosome contains only markers
 #' that appear in \code{markers_df}, in the order defined by the data frame
@@ -61,27 +31,26 @@ extract_chr_list <- function(genoprobs) {
 #' and their order follows \code{markers_df} after \code{markers_sort}. The
 #' returned \code{genoprobs} has the same attributes and class as the input.
 #'
-#' @seealso \code{\link{positions_to_bp}}, \code{\link{markers_sort}},
-#'   \code{\link{genoprobs_correlate}}
-#'
 #' @export
 genoprobs_sync_markers <- function(genoprobs,
-                                        markers_df,
-                                        marker_col = "marker",
-                                        chr_col    = "chr",
-                                        pos_col    = "pos",
-                                        unit       = c("auto","Mb","bp")) {
+                                   markers_df,
+                                   marker_col = 'marker',
+                                   chr_col    = 'chr',
+                                   pos_col    = 'pos',
+                                   unit       = c('auto','Mb','bp')) {
     unit <- match.arg(unit)
-    stopifnot(all(c(marker_col, chr_col, pos_col) %in% names(markers_df)))
+    if(!all(c(marker_col, chr_col, pos_col) %in% names(markers_df))) {
+        stop('Column not found in markers_df: ', paste(c(marker_col, chr_col, pos_col), collapse = ', '))
+    }
 
-    # Robustly extract a plain list of chr arrays so subsetting [common_chr] is safe.
+    # extract a plain list of chr arrays so subsetting [common_chr] is safe
     genoprobs_list <- extract_chr_list(genoprobs)
 
-    # 1) Normalize marker positions to bp and sort by chr, pos for consistent order.
+    # normalize marker positions to bp and sort by chr, pos for consistent order
     markers_bp <- positions_to_bp(markers_df, pos_col = pos_col, unit = unit)
     markers_bp <- markers_sort(markers_bp, chr_col = chr_col, pos_col = pos_col, marker_col = marker_col)
 
-    # 2) Build qtl2-style marker map (named list of named position vectors) for downstream use.
+    # build qtl2-style marker map (named list of named position vectors) for downstream use
     map <- qtl2convert::map_df_to_list(
         markers_bp,
         marker = marker_col,
@@ -89,34 +58,44 @@ genoprobs_sync_markers <- function(genoprobs,
         pos    = pos_col
     )
 
-    # 3) Restrict to chromosomes present in both; plain list subsetting is safe here.
+    # restrict to chromosomes present in both; plain list subsetting is safe here
     common_chr <- intersect(names(genoprobs_list), names(map))
-    if(!length(common_chr)) stop("No overlapping chromosome names between genoprobs and markers/map.")
+    if(!length(common_chr)) {
+        stop('No overlapping chromosome names between genoprobs and markers/map.')
+    }
 
     out <- genoprobs_list[common_chr]
 
     dropped_markers_not_in_gp  <- list()
     dropped_markers_not_in_map <- list()
 
-    # 4) Per chromosome: keep only markers that appear in both, in map order.
+    # per chromosome: keep only markers that appear in both, in map order
     for(chr in common_chr) {
 
         pr <- out[[chr]]
-        if(length(dim(pr)) != 3) stop(sprintf("Chr %s genoprobs is not a 3D array.", chr))
+        if(length(dim(pr)) != 3) {
+            stop(sprintf('Chr %s genoprobs is not a 3D array.', chr))
+        }
 
         gp_markers <- dimnames(pr)[[3]]
-        if(is.null(gp_markers)) stop(sprintf("Chr %s genoprobs has NULL marker dimnames.", chr))
+        if(is.null(gp_markers)) {
+            stop(sprintf('Chr %s genoprobs has NULL marker dimnames.', chr))
+        }
 
         map_markers <- names(map[[chr]])
-        if(is.null(map_markers)) stop(sprintf("Chr %s map has NULL names().", chr))
+        if(is.null(map_markers)) {
+            stop(sprintf('Chr %s map has NULL names().', chr))
+        }
 
-        # Keep markers in map order (sorted by chr/pos already); only those in genoprobs too.
+        # keep markers in map order (sorted by chr/pos already); only those in genoprobs too
         keep <- map_markers[map_markers %in% gp_markers]
 
         dropped_markers_not_in_gp[[chr]]  <- setdiff(map_markers, gp_markers)
         dropped_markers_not_in_map[[chr]] <- setdiff(gp_markers, map_markers)
 
-        if(!length(keep)) stop(sprintf("Chr %s has zero overlapping markers between genoprobs and markers_df.", chr))
+        if(!length(keep)) {
+            stop(sprintf('Chr %s has zero overlapping markers between genoprobs and markers_df.', chr))
+        }
 
         idx <- match(keep, gp_markers)
         out[[chr]] <- pr[, , idx, drop = FALSE]
@@ -125,20 +104,11 @@ genoprobs_sync_markers <- function(genoprobs,
         stopifnot(identical(dimnames(out[[chr]])[[3]], names(map[[chr]])))
     }
 
-    ## Optional: sort samples by sample name (uncomment and add sort_samples arg if needed).
-    #if(sort_samples) {
-    #    chr0 <- common_chr[1]
-    #    s <- rownames(out[[chr0]])
-    #    if(is.null(s)) stop("Sample names (rownames) are NULL.")
-    #    o <- order(s)
-    #    for(chr in names(out)) out[[chr]] <- out[[chr]][o, , , drop = FALSE]
-    #}
-
-    # Restore original attributes/class so result behaves like input genoprobs.
+    # restore original attributes/class so result behaves like input genoprobs
     attributes(out) <- attributes(genoprobs)
     class(out) <- class(genoprobs)
 
-    # 5) Subset markers to only those present in genoprobs/map (same set per chr).
+    # subset markers to only those present in genoprobs/map (same set per chr)
     kept_rows <- logical(nrow(markers_bp))
     for(chr in common_chr) {
         kept_rows <- kept_rows | (
@@ -149,9 +119,9 @@ genoprobs_sync_markers <- function(genoprobs,
     markers_out <- markers_bp[kept_rows, , drop = FALSE]
 
     list(
-        genoprobs = out,
-        markers   = markers_out,
-        map       = map[common_chr],
+        genoprobs                  = out,
+        markers                    = markers_out,
+        map                        = map[common_chr],
         dropped_markers_not_in_gp  = dropped_markers_not_in_gp,
         dropped_markers_not_in_map = dropped_markers_not_in_map
     )
