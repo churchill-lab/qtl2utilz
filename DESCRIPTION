@@ -1,0 +1,20 @@
+Package: qtl2utilz
+Type: Package
+Title: QTL2UTILZ
+Version: 0.1.0
+Authors@R: c(
+    person(
+      'Matthew', 'Vincent',
+      email = 'matt.vincent@jax.org',
+      role = c('aut', 'cre')
+    )
+  )
+Description: Common function and methods for QTL2 and GBRS.
+    Developed in the Churchill Lab.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Imports:
+    qtl2 (>= 0.38),
+    qtl2convert (>= 0.30)
+RoxygenNote: 7.3.3

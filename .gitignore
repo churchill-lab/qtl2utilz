@@ -1,0 +1,49 @@
+# Project data (large or local files)
+data/
+
+# R and RStudio
+.Rhistory
+.RData
+.Ruserdata
+*.Rproj.user/
+*.Rproj.user
+.Rprofile
+
+# Optional: uncomment if you don't want to track the project file
+# *.Rproj
+
+# Package build artifacts
+*.tar.gz
+*.zip
+*.o
+*.so
+*.dll
+
+# renv (keep renv.lock and activate.R; ignore library and local state)
+renv/library/
+renv/local/
+renv/staging/
+renv/cache/
+
+# Cursor IDE (project-specific cache, state; uncomment next line to keep .cursor/rules in git)
+.cursorignore
+.cursor/
+
+# pkgdown / docs build
+docs/
+pkgdown/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE / editor (Cursor covered above)
+.idea/
+*.swp
+*.swo
+*~
+
+# Misc R
+.httr-oauth
+*.log
+*.Rapp.history
