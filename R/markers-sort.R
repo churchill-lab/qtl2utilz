@@ -1,4 +1,4 @@
-#' Rank chromosomes for ordering
+#' Rank chromosomes for ordering.
 #'
 #' Returns a numeric rank for each chromosome name so that standard autosomes
 #' (1–19) come first in numeric order, then X, Y, XY, MT, then any other

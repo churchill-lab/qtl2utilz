@@ -48,3 +48,4 @@ Thumbs.db
 .httr-oauth
 *.log
 *.Rapp.history
+.Rproj.user
