@@ -4,26 +4,14 @@
 \alias{genoprobs_sync_markers}
 \title{Synchronize genoprobs to a marker data frame.}
 \usage{
-genoprobs_sync_markers(
-  genoprobs,
-  markers_df,
-  marker_col = "marker",
-  chr_col = "chr",
-  pos_col = "pos",
-  unit = c("auto", "Mb", "bp")
-)
+genoprobs_sync_markers(genoprobs, markers_df, unit = c("auto", "Mb", "bp"))
 }
 \arguments{
 \item{genoprobs}{qtl2-style genoprobs (named list of 3D arrays by chromosome).}
 
 \item{markers_df}{Data frame with at least marker ID, chromosome, and
-position columns (see \code{marker_col}, \code{chr_col}, \code{pos_col}).}
-
-\item{marker_col}{Name of the column in \code{markers_df} containing marker IDs.}
-
-\item{chr_col}{Name of the chromosome column.}
-
-\item{pos_col}{Name of the position column.}
+position columns. Aliases are accepted and normalized via
+\code{resolve_col_markers()}.}
 
 \item{unit}{Position unit: \code{'auto'} (detect from values), \code{'Mb'}, or \code{'bp'}.}
 }

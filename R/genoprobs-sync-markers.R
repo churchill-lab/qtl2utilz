@@ -8,10 +8,8 @@
 #'
 #' @param genoprobs qtl2-style genoprobs (named list of 3D arrays by chromosome).
 #' @param markers_df Data frame with at least marker ID, chromosome, and
-#'   position columns (see \code{marker_col}, \code{chr_col}, \code{pos_col}).
-#' @param marker_col Name of the column in \code{markers_df} containing marker IDs.
-#' @param chr_col Name of the chromosome column.
-#' @param pos_col Name of the position column.
+#'   position columns. Aliases are accepted and normalized via
+#'   \code{resolve_col_markers()}.
 #' @param unit Position unit: \code{'auto'} (detect from values), \code{'Mb'}, or \code{'bp'}.
 #'
 #' @return A list with components:
@@ -28,28 +26,27 @@
 #' @export
 genoprobs_sync_markers <- function(genoprobs,
                                    markers_df,
-                                   marker_col = 'marker',
-                                   chr_col    = 'chr',
-                                   pos_col    = 'pos',
                                    unit       = c('auto','Mb','bp')) {
     unit <- match.arg(unit)
-    if(!all(c(marker_col, chr_col, pos_col) %in% names(markers_df))) {
-        stop('Column not found in markers_df: ', paste(c(marker_col, chr_col, pos_col), collapse = ', '))
+    markers_df <- resolve_col_markers(markers_df)
+
+    if(!all(c('marker_id', 'chr', 'pos') %in% names(markers_df))) {
+        stop('markers_df must contain "marker_id", "chr", and "pos"')
     }
 
     # extract a plain list of chr arrays so subsetting [common_chr] is safe
     genoprobs_list <- extract_chr_list(genoprobs)
 
     # normalize marker positions to bp and sort by chr, pos for consistent order
-    markers_bp <- positions_to_bp(markers_df, pos_col = pos_col, unit = unit)
-    markers_bp <- markers_sort(markers_bp, chr_col = chr_col, pos_col = pos_col, marker_col = marker_col)
+    markers_bp <- positions_to_bp(markers_df, unit = unit)
+    markers_bp <- markers_sort(markers_bp)
 
     # build qtl2-style marker map (named list of named position vectors) for downstream use
     map <- qtl2convert::map_df_to_list(
         markers_bp,
-        marker = marker_col,
-        chr    = chr_col,
-        pos    = pos_col
+        marker = 'marker_id',
+        chr    = 'chr',
+        pos    = 'pos'
     )
 
     # restrict to chromosomes present in both; plain list subsetting is safe here
@@ -106,8 +103,8 @@ genoprobs_sync_markers <- function(genoprobs,
     kept_rows <- logical(nrow(markers_bp))
     for(chr in common_chr) {
         kept_rows <- kept_rows | (
-            markers_bp[[chr_col]] == chr &
-            markers_bp[[marker_col]] %in% names(map[[chr]])
+            markers_bp$chr == chr &
+            markers_bp$marker_id %in% names(map[[chr]])
         )
     }
     markers_out <- markers_bp[kept_rows, , drop = FALSE]

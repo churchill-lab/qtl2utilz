@@ -43,6 +43,12 @@ read_counts_file <- function (x) {
 #'
 #' @export
 gbrs_build_counts <- function(gbrs_files_tbl) {
+    gbrs_files_tbl <- resolve_col_samples(gbrs_files_tbl)
+
+    if(!all(c('sample_id', 'full_path_counts') %in% names(gbrs_files_tbl))) {
+        stop('gbrs_files_tbl must contain "sample_id" and "full_path_counts"')
+    }
+
     # read in the count files (one per sample)
     raw_counts <- sapply(
         gbrs_files_tbl$full_path_counts,

@@ -33,6 +33,16 @@ gbrs_read_genoprobs_file <- function (x) {
 #'
 #' @export
 gbrs_build_genoprobs <- function(gbrs_files_tbl, markers) {
+    gbrs_files_tbl <- resolve_col_samples(gbrs_files_tbl)
+    markers <- resolve_col_markers(markers)
+
+    if(!all(c('sample_id', 'full_path_genoprobs') %in% names(gbrs_files_tbl))) {
+        stop("gbrs_files_tbl must contain 'sample_id' and 'full_path_genoprobs'")
+    }
+    if(!all(c('marker_id', 'chr', 'pos') %in% names(markers))) {
+        stop("markers must contain 'marker_id', 'chr', and 'pos'")
+    }
+
     # read in the probabilities
     raw_probs = sapply(
         gbrs_files_tbl$full_path_genoprobs,
@@ -44,16 +54,7 @@ gbrs_build_genoprobs <- function(gbrs_files_tbl, markers) {
     # get data dimensions
     samples   <- gbrs_files_tbl$sample_id
     n_samples <- length(samples)
-
-    # detect marker column: accept marker, marker_id, markerid, marker.id, etc.
-    marker_col_candidates <- c('marker', 'marker_id', 'markerid', 'marker.id', 'marker_name', 'markername')
-
-    marker_col <- marker_col_candidates[marker_col_candidates %in% names(markers)][1]
-    if (is.na(marker_col)) {
-        stop('markers must have a column for marker IDs. Expected one of: ',
-             paste(marker_col_candidates, collapse = ', '))
-    }
-    marker_ids <- markers[[marker_col]]
+    marker_ids <- markers$marker_id
     n_markers <- length(marker_ids)
 
     # make an empty array (samples, haplotypes, markers) and fill it by sample
@@ -70,8 +71,10 @@ gbrs_build_genoprobs <- function(gbrs_files_tbl, markers) {
 
     # convert the probs array into a genoprobs object
     qtl2convert::probs_doqtl_to_qtl2(
-        probs, 
+        probs,
         map = markers,
-        marker_column = marker_col
+        marker_column = 'marker_id',
+        chr_column = 'chr',
+        pos_column = 'pos'
     )
 }

@@ -4,16 +4,10 @@
 \alias{markers_sort}
 \title{Sort a data frame of genetic markers by chromosome and position}
 \usage{
-markers_sort(markers, chr_col = "chr", pos_col = "pos", marker_col = "marker")
+markers_sort(markers)
 }
 \arguments{
 \item{markers}{Data frame containing marker information.}
-
-\item{chr_col}{Name of the column containing chromosome identifiers.}
-
-\item{pos_col}{Name of the column containing positions (numeric).}
-
-\item{marker_col}{Name of the column containing marker IDs (used for ties).}
 }
 \value{
 The data frame \code{markers} with rows reordered. No columns are added
@@ -21,5 +15,7 @@ The data frame \code{markers} with rows reordered. No columns are added
 }
 \description{
 Sorts rows by chromosome (using standard order 1–19, X, Y, XY, MT, then
-others), then by position, then by marker name for deterministic tie-breaking.
+others), then by position, then by marker ID for deterministic tie-breaking.
+Marker/map key aliases are accepted and normalized via
+\code{resolve_col_markers()}.
 }

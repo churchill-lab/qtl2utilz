@@ -40,21 +40,26 @@ chr_rank <- function(chr) {
 #' Sort a data frame of genetic markers by chromosome and position
 #'
 #' Sorts rows by chromosome (using standard order 1–19, X, Y, XY, MT, then
-#' others), then by position, then by marker name for deterministic tie-breaking.
+#' others), then by position, then by marker ID for deterministic tie-breaking.
+#' Marker/map key aliases are accepted and normalized via
+#' \code{resolve_col_markers()}.
 #'
 #' @param markers Data frame containing marker information.
-#' @param chr_col Name of the column containing chromosome identifiers.
-#' @param pos_col Name of the column containing positions (numeric).
-#' @param marker_col Name of the column containing marker IDs (used for ties).
 #'
 #' @return The data frame \code{markers} with rows reordered. No columns are added
 #'   or removed.
 #'
 #' @export
-markers_sort <- function(markers, chr_col = 'chr', pos_col = 'pos', marker_col = 'marker') {
+markers_sort <- function(markers) {
+    markers <- resolve_col_markers(markers)
+
+    if(!all(c('marker_id', 'chr', 'pos') %in% names(markers))) {
+        stop('markers must contain "marker_id", "chr", and "pos"')
+    }
+
     # order by chromosome rank, then position, then marker name (ties deterministic)
-    o <- order(chr_rank(markers[[chr_col]]),
-               markers[[pos_col]],
-               as.character(markers[[marker_col]]))
+    o <- order(chr_rank(markers$chr),
+               markers$pos,
+               markers$marker_id)
     markers[o, , drop = FALSE]
 }
