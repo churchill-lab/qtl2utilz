@@ -14,7 +14,7 @@
 #'   (e.g. \code{'pearson'}, \code{'spearman'}).
 #'
 #' @return A data frame with columns:
-#'   \item{mouse_id}{Sample ID.}
+#'   \item{sample_id}{Sample ID.}
 #'   \item{correlation}{Correlation between the two genoprobs for that sample.}
 #'   \item{flag_low}{\code{TRUE} when correlation < \code{threshold}.}
 #'
@@ -40,7 +40,7 @@ genoprobs_correlate <- function(genoprobs_1,
 
     # one row per common sample; correlation filled in below
     results <- data.frame(
-        mouse_id = common_samples,
+        sample_id = common_samples,
         correlation = NA_real_,
         flag_low = FALSE,
         stringsAsFactors = FALSE

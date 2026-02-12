@@ -50,6 +50,7 @@
 
 # Resolve and normalize sample key column to canonical sample_id.
 # Returns a data.frame with the renamed column.
+# @keywords internal
 resolve_col_samples <- function(df) {
     sample_col <- .resolve_col(df, 'sample_id')
     names(df)[names(df) == sample_col] <- 'sample_id'
@@ -58,6 +59,7 @@ resolve_col_samples <- function(df) {
 
 # Resolve and normalize marker/map key columns to canonical names.
 # Returns a data.frame with marker_id, chr, and pos column names.
+# @keywords internal
 resolve_col_markers <- function(df) {
     marker_col <- .resolve_col(df, 'marker_id')
     chr_col <- .resolve_col(df, 'chr')

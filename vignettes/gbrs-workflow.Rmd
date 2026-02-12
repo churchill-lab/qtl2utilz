@@ -1,0 +1,127 @@
+---
+title: "GBRS to R/qtl2 Workflow"
+author: "Matthew Vincent"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{GBRS to R/qtl2 Workflow}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = TRUE
+)
+```
+
+## Overview
+
+This vignette illustrates how to use **qtl2utilz** to import GBRS (Genotype By RNA-Seq) genotype probabilities and read counts into R/qtl2 format, and how to compare GBRS genoprobs with array-based genotypes (e.g. MUGA) for quality control.
+
+## Prerequisites
+
+- GBRS output files: one genoprobs TSV and one read-counts file per sample
+- A marker map (chromosome, position, marker ID) compatible with your genoprobs
+
+## Workflow 1: Import GBRS Data
+
+### Step 1: Find GBRS output files
+
+`gbrs_find_files()` recursively searches a directory for GBRS genoprobs and read-counts files. By default it looks for:
+
+- Genoprobs: `*.gbrs.interpolated.genoprobs.tsv`
+- Counts: `*.diploid.genes.expected_read_counts`
+
+```{r find-files, eval = FALSE}
+library(qtl2utilz)
+
+files_tbl <- gbrs_find_files("/path/to/gbrs/output")
+# Returns: sample_id, full_path_genoprobs, full_path_counts, etc.
+```
+
+### Step 2: Build genotype probabilities
+
+Pass the files tibble and a marker map to `gbrs_build_genoprobs()`. The marker map can use flexible column names (e.g. `marker`, `chrom`, `position`).
+
+```{r build-genoprobs, eval = FALSE}
+markers <- read.csv("marker_map.csv")
+genoprobs <- gbrs_build_genoprobs(files_tbl, markers)
+# Result: qtl2-style genoprobs (list of 3D arrays by chromosome)
+```
+
+### Step 3: Build expression matrix
+
+`gbrs_build_counts()` builds a samples × genes matrix from the read-counts files.
+
+```{r build-counts, eval = FALSE}
+expr <- gbrs_build_counts(files_tbl)
+```
+
+## Workflow 2: Compare GBRS vs MUGA
+
+When you have both GBRS and array-based (e.g. MUGA) genoprobs, you can interpolate GBRS onto the MUGA marker grid and compute per-sample correlations for QC.
+
+```{r gbrs-muga, eval = FALSE}
+# 1) Sync each genoprobs to its marker set
+gbrs <- genoprobs_sync_markers(genoprobs_GBRS, markers_GBRS)
+muga <- genoprobs_sync_markers(genoprobs_MUGA, markers_MUGA)
+
+# 2) Interpolate GBRS onto MUGA marker positions
+gbrs_on_muga <- genoprobs_interpolate(gbrs$genoprobs, gbrs$map, muga$map)
+
+# 3) Restrict to common samples (same order)
+aligned <- genoprobs_sync_samples(gbrs_on_muga, muga$genoprobs)
+
+# 4) Per-sample correlation
+cor_tbl <- genoprobs_correlate(aligned$genoprobs_1, aligned$genoprobs_2)
+# Samples with correlation < 0.8 are flagged in cor_tbl$flag_low
+```
+
+## Utility Functions
+
+### Position conversion
+
+Positions can be in Mb or bp. `positions_to_bp()` handles both:
+
+```{r positions}
+library(qtl2utilz)
+
+# Numeric vector (Mb)
+positions_to_bp(c(1, 2, 3), unit = "Mb")
+
+# Auto-detect: max < 2000 => Mb, else bp
+positions_to_bp(c(1, 2), unit = "auto")
+
+# Data frame
+df <- data.frame(chr = "1", pos = c(1, 2, 3))
+positions_to_bp(df, unit = "Mb")
+```
+
+### Marker sorting
+
+`markers_sort()` orders markers by chromosome (1–19, X, Y, MT) and position:
+
+```{r markers-sort}
+df <- data.frame(
+  marker_id = c("m3", "m1", "m2"),
+  chr = c("2", "1", "1"),
+  pos = c(1, 3, 2)
+)
+markers_sort(df)
+```
+
+### Rank-based inverse normal transformation
+
+`rankZ()` transforms skewed phenotype or expression data for QTL mapping:
+
+```{r rankZ}
+x <- c(1, 5, 3, 2, 4)
+rankZ(x)
+```
+
+## Column aliases
+
+qtl2utilz accepts flexible column names. For sample IDs: `sample_id`, `mouse_id`, `sample`, etc. For markers: `marker_id`, `marker`, `chr`, `chrom`, `pos`, `position`. See `?resolve_col_markers` for the full list (internal).

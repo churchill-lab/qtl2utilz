@@ -24,7 +24,7 @@ genoprobs_correlate(
 }
 \value{
 A data frame with columns:
-  \item{mouse_id}{Sample ID.}
+  \item{sample_id}{Sample ID.}
   \item{correlation}{Correlation between the two genoprobs for that sample.}
   \item{flag_low}{\code{TRUE} when correlation < \code{threshold}.}
 }

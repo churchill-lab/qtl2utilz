@@ -1,0 +1,15 @@
+citHeader("To cite qtl2utilz in publications, use:")
+
+citEntry(
+  entry = "Manual",
+  title = "qtl2utilz: Utilities for R/qtl2 and GBRS Workflows",
+  author = personList(
+    person("Matthew", "Vincent", email = "matt.vincent@jax.org",
+           role = c("aut", "cre"))
+  ),
+  year = 2025,
+  url = "https://github.com/churchill-lab/qtl2utilz",
+  note = "R package version 0.1.0"
+)
+
+citFooter("The Churchill Lab at The Jackson Laboratory. https://churchill-lab.jax.org/")
