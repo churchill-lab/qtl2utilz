@@ -49,3 +49,5 @@ Thumbs.db
 *.log
 *.Rapp.history
 .Rproj.user
+/doc/
+/Meta/

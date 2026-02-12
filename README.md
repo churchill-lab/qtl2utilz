@@ -57,7 +57,7 @@ summary(cor_tbl$correlation)
 
 ## Documentation
 
-- [Vignette: GBRS to R/qtl2](vignettes/gbrs-workflow.html) — full workflow with examples
+- **Vignette** (after installing): `vignette("gbrs-workflow", package = "qtl2utilz")` — full workflow with examples
 - Function help: `?gbrs_build_genoprobs`, `?genoprobs_interpolate`, etc.
 
 ## Dependencies
