@@ -10,9 +10,11 @@
 #' \code{\link{gbrs_build_counts}}
 #'
 #' @section Genoprobs utilities:
-#' \code{\link{genoprobs_sync_markers}}, \code{\link{genoprobs_sync_samples}},
-#' \code{\link{genoprobs_combine_samples}}, \code{\link{genoprobs_interpolate}},
-#' \code{\link{genoprobs_correlate}}
+#' \code{\link{genoprobs_sync}}, \code{\link{genoprobs_sync_markers}},
+#' \code{\link{genoprobs_sync_samples}}, \code{\link{genoprobs_intersect_samples}},
+#' \code{\link{genoprobs_combine_samples}}, \code{\link{genoprobs_compare}},
+#' \code{\link{genoprobs_interpolate}}, \code{\link{genoprobs_correlate}},
+#' \code{\link{genoprobs_compute_similarity}}, \code{\link{genoprobs_detect_sample_swaps}}
 #'
 #' @section Other utilities:
 #' \code{\link{positions_to_bp}}, \code{\link{markers_sort}}, \code{\link{rankZ}}

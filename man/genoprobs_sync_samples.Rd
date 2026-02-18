@@ -2,32 +2,45 @@
 % Please edit documentation in R/genoprobs-sync-samples.R
 \name{genoprobs_sync_samples}
 \alias{genoprobs_sync_samples}
-\title{Align samples across two genoprobs objects.}
+\title{Synchronize genoprobs to a samples data frame.}
 \usage{
-genoprobs_sync_samples(genoprobs_1, genoprobs_2, sort = TRUE)
+genoprobs_sync_samples(
+  genoprobs,
+  samples_df,
+  sample_order = c("samples", "genoprobs", "alphabetical")
+)
 }
 \arguments{
-\item{genoprobs_1}{First qtl2-style genoprobs object.}
+\item{genoprobs}{qtl2-style genoprobs (named list of 3D arrays by chromosome).}
 
-\item{genoprobs_2}{Second qtl2-style genoprobs object.}
+\item{samples_df}{Data frame with at least a sample ID column. Aliases are
+accepted and normalized via \code{resolve_col_samples()}.}
 
-\item{sort}{If \code{TRUE}, order common samples alphabetically.}
+\item{sample_order}{How to order samples in the output:
+\code{'samples'} (default) preserves order from \code{samples_df},
+\code{'genoprobs'} preserves order from \code{genoprobs},
+\code{'alphabetical'} sorts samples alphabetically.}
 }
 \value{
 A list with components:
-  \item{genoprobs_1}{First genoprobs restricted to common chromosomes and common samples.}
-  \item{genoprobs_2}{Second genoprobs restricted to common chromosomes and common samples.}
-  \item{common_samples}{Character vector of sample IDs in both.}
-  \item{dropped_from_1}{Sample IDs only in \code{genoprobs_1}.}
-  \item{dropped_from_2}{Sample IDs only in \code{genoprobs_2}.}
+  \item{genoprobs}{Genoprobs restricted to common chromosomes and
+    samples present in both genoprobs and \code{samples_df}, in the
+    order specified by \code{sample_order}.}
+  \item{samples}{Sample data frame restricted to samples that appear in
+    genoprobs; only samples present in both are included.}
+  \item{common_samples}{Character vector of sample IDs present in both.}
+  \item{dropped_from_genoprobs}{Sample IDs in genoprobs but not in \code{samples_df}.}
+  \item{dropped_from_samples_df}{Sample IDs in \code{samples_df} but not in genoprobs.}
 }
 \description{
-Subset both genoprobs objects to their common samples (and optionally
-sort sample order). Useful before \code{genoprobs_correlate} or other
-comparisons so that both objects have the same samples in the same order.
+Subset and reorder genoprobs so that it contains only samples that appear
+in \code{samples_df}, optionally preserving the order from either the
+genoprobs object or the samples data frame. Useful to align genoprobs with
+a standard sample set (e.g. for filtering to specific samples or matching
+with phenotype data).
 }
 \details{
 Only overlapping chromosomes are considered. A sample is included only if it
-appears on every common chromosome in both objects. Attributes and class of
-each genoprobs are preserved in the returned subsets.
+appears on every common chromosome in genoprobs. Attributes and class of
+genoprobs are preserved in the returned subset.
 }
