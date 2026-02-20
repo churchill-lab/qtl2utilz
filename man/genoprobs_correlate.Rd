@@ -2,36 +2,97 @@
 % Please edit documentation in R/genoprobs-correlate.R
 \name{genoprobs_correlate}
 \alias{genoprobs_correlate}
-\title{Correlate genoprobs between two objects.}
+\title{Correlate genoprobs between two objects (per sample)}
 \usage{
 genoprobs_correlate(
   genoprobs_1,
   genoprobs_2,
   threshold = 0.8,
-  method = "pearson"
+  method = c("pearson", "spearman", "kendall"),
+  check_dimnames = TRUE
 )
 }
 \arguments{
-\item{genoprobs_1}{First R/qtl2 calc_genoprobs object.}
+\item{genoprobs_1}{First R/qtl2 \code{calc_genoprob} object.}
 
-\item{genoprobs_2}{Second R/qtl2 calc_genoprobs object (same structure).}
+\item{genoprobs_2}{Second R/qtl2 \code{calc_genoprob} object.}
 
 \item{threshold}{Numeric; correlations below this value are flagged in
-\code{flag_low} (default 0.80).}
+\code{flag_low}. Default is \code{0.80}.}
 
-\item{method}{Correlation method passed to \code{\link[stats]{cor}}
-(e.g. \code{'pearson'}, \code{'spearman'}).}
+\item{method}{Correlation method. One of \code{"pearson"}, \code{"spearman"},
+or \code{"kendall"} (passed to \code{\link[stats]{cor}}). Default \code{"pearson"}.}
+
+\item{check_dimnames}{Logical; if \code{TRUE} (default), verify that haplotype
+and marker dimnames match exactly (when available) for each chromosome. Set
+to \code{FALSE} only if you have already enforced alignment and want to skip
+these checks.}
 }
 \value{
-A data frame with columns:
-  \item{sample_id}{Sample ID.}
-  \item{correlation}{Correlation between the two genoprobs for that sample.}
-  \item{flag_low}{\code{TRUE} when correlation < \code{threshold}.}
+A data frame with one row per overlapping sample:
+\describe{
+  \item{sample_id}{Sample ID (intersection of samples across objects).}
+  \item{correlation}{Correlation between the two genoprobs vectors for that sample.}
+  \item{flag_low}{\code{TRUE} when correlation is \code{NA} or < \code{threshold}.}
+}
 }
 \description{
-Compute per-sample correlation between two qtl2-style genoprobs objects
-(e.g. GBRS vs MUGA) over overlapping chromosomes and samples. For each
-sample, all founder probabilities across all chromosomes are concatenated
-and correlated. Use \code{genoprobs_sync_markers} and \code{genoprobs_sync_samples}
-first so both objects share the same markers and samples if needed.
+Compute per-sample similarity between two R/qtl2-style genotype probability
+objects (a \code{calc_genoprob} list of 3D arrays, one per chromosome).
+}
+\section{Big picture}{
+
+For each chromosome, genoprobs are stored as a 3D array with dimensions:
+\itemize{
+  \item \code{dim 1}: samples (individuals)
+  \item \code{dim 2}: states/haplotypes (e.g., founders A--H)
+  \item \code{dim 3}: markers (positions along the chromosome)
+}
+For a given sample, the \code{haplotype x marker} probabilities can be
+"flattened" into one long numeric vector. This function compares the two
+objects sample-by-sample by correlating those flattened vectors across all
+overlapping chromosomes.
+}
+
+\section{Why use accumulation instead of concatenation}{
+
+A straightforward implementation would concatenate probability vectors across
+chromosomes and call \code{cor(v1, v2)}. That can be slow and memory-heavy
+because repeated \code{c(v, new_values)} reallocates vectors many times.
+For Pearson correlation, we can avoid building the full concatenated vectors:
+Pearson correlation can be computed from running totals
+\code{sum(x)}, \code{sum(y)}, \code{sum(x^2)}, \code{sum(y^2)}, \code{sum(xy)}
+and the number of features. This version uses that approach for speed and
+lower memory use. (For Spearman/Kendall, rank correlation requires the full
+vectors, so this function falls back to concatenation for those methods.)
+}
+
+\section{Alignment assumptions (important)}{
+
+This function assumes the two objects are comparable:
+\itemize{
+  \item same state/haplotype set (dim 2) per chromosome
+  \item same marker grid (dim 3) per chromosome, in the same order
+}
+You can enforce this upstream with helpers such as
+\code{genoprobs_sync_markers()} and \code{genoprobs_sync_samples()}.
+
+By default, this function also performs lightweight safety checks using
+dimnames (when present) to ensure state and marker ordering matches before
+comparing. This prevents silent "wrong-but-plausible" correlations when, for
+example, marker order differs between objects.
+}
+
+\examples{
+\dontrun{
+# Suppose gp_a and gp_b were produced from different sources (e.g. GBRS vs MUGA)
+# and aligned to the same marker grid and sample set:
+gp_b2 <- genoprobs_sync_markers(gp_b, gp_a)    # align marker grids
+gp_b2 <- genoprobs_sync_samples(gp_b2, gp_a)   # align sample IDs/order (if desired)
+
+out <- genoprobs_correlate(gp_a, gp_b2, threshold = 0.9)
+head(out)
+subset(out, flag_low)
+}
+
 }

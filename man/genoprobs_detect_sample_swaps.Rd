@@ -2,27 +2,82 @@
 % Please edit documentation in R/genoprobs-detect-sample-swaps.R
 \name{genoprobs_detect_sample_swaps}
 \alias{genoprobs_detect_sample_swaps}
-\title{Detect likely sample swaps from a similarity matrix}
+\alias{genoprobs_detect_sample_swaps.matrix}
+\alias{genoprobs_detect_sample_swaps.calc_genoprob}
+\alias{genoprobs_detect_sample_swaps.default}
+\title{Detect likely sample swaps from a similarity matrix or two genoprob objects}
 \usage{
-genoprobs_detect_sample_swaps(
-  sim,
+genoprobs_detect_sample_swaps(x, ...)
+
+\method{genoprobs_detect_sample_swaps}{matrix}(
+  x,
   sample_map = NULL,
   min_delta_best_labeled = 0.05,
-  min_delta_best_second = 0.02
+  min_delta_best_second = 0.02,
+  ...
 )
+
+\method{genoprobs_detect_sample_swaps}{calc_genoprob}(
+  x,
+  genoprobs_2,
+  sample_map = NULL,
+  metric = c("pearson", "cosine"),
+  min_delta_best_labeled = 0.05,
+  min_delta_best_second = 0.02,
+  ...
+)
+
+\method{genoprobs_detect_sample_swaps}{default}(x, ...)
 }
 \arguments{
-\item{sim}{Similarity matrix: rows=array/DNA samples, cols=GBRS/RNA samples}
+\item{x}{For \code{.calc_genoprob} method: first calc_genoprob object.}
 
-\item{sample_map}{Optional data.frame with columns c("gbrs","array")}
+\item{...}{Additional arguments passed to methods. See method-specific documentation.}
+
+\item{sample_map}{Optional data.frame with columns c("col_sample", "row_sample") giving
+expected pairing: for each col sample, which row sample it is expected to match.
+Legacy columns "gbrs" and "array" are also accepted.}
 
 \item{min_delta_best_labeled}{Flag mismatch if best - labeled >= this (default 0.05)}
 
 \item{min_delta_best_second}{Require best - second >= this for "confident" (default 0.02)}
+
+\item{genoprobs_2}{Second calc_genoprob object (required when x is a calc_genoprob object).}
+
+\item{metric}{Similarity metric to use when computing similarity matrix.
+One of \code{'pearson'} or \code{'cosine'} (default \code{'pearson'}).
+Only used when x is a calc_genoprob object.}
 }
 \value{
-data.frame with best/second matches, deltas, flags, and reciprocal swap tags
+data.frame with columns:
+\describe{
+  \item{col_sample}{Sample ID from the column set (genoprobs_2 or second object)}
+  \item{expected_row_sample}{Expected matching sample from row set}
+  \item{labeled_r}{Similarity to expected match}
+  \item{best_row_sample}{Actual best matching sample from row set}
+  \item{best_r}{Similarity to best match}
+  \item{second_row_sample}{Second-best matching sample}
+  \item{second_r}{Similarity to second-best match}
+  \item{delta_best_second}{Difference: best - second}
+  \item{delta_best_labeled}{Difference: best - labeled}
+  \item{flag}{Match status: "match", "match_ambiguous", "mismatch_confident", "mismatch_ambiguous", or "unmapped"}
+  \item{reciprocal_pair}{For swaps, identifier like "swap:A<->B"}
+}
 }
 \description{
-Detect likely sample swaps from a similarity matrix
+Generic function to detect sample swaps. Can accept either:
+\itemize{
+  \item A similarity matrix (from \code{genoprobs_compute_similarity}) - dispatches to \code{.matrix} method
+  \item Two calc_genoprob objects - dispatches to \code{.calc_genoprob} method (computes similarity first)
+}
+}
+\examples{
+\dontrun{
+# Method 1: From similarity matrix
+sim_result <- genoprobs_compute_similarity(gp_a, gp_b)
+swaps <- genoprobs_detect_sample_swaps(sim_result$sim, sample_map)
+
+# Method 2: From genoprob objects (convenience wrapper)
+swaps <- genoprobs_detect_sample_swaps(gp_a, gp_b, sample_map, metric = 'pearson')
+}
 }
