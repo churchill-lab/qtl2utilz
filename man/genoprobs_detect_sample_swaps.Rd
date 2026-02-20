@@ -35,8 +35,7 @@ genoprobs_detect_sample_swaps(x, ...)
 \item{...}{Additional arguments passed to methods. See method-specific documentation.}
 
 \item{sample_map}{Optional data.frame with columns c("col_sample", "row_sample") giving
-expected pairing: for each col sample, which row sample it is expected to match.
-Legacy columns "gbrs" and "array" are also accepted.}
+expected pairing: for each col sample, which row sample it is expected to match.}
 
 \item{min_delta_best_labeled}{Flag mismatch if best - labeled >= this (default 0.05)}
 

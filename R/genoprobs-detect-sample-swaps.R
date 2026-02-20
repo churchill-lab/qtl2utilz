@@ -44,223 +44,253 @@ genoprobs_detect_sample_swaps <- function(x, ...) {
 #'   between row sample i and col sample j. Must have rownames and colnames.
 #' @param sample_map Optional data.frame with columns c("col_sample", "row_sample") giving
 #'   expected pairing: for each col sample, which row sample it is expected to match.
-#'   Legacy columns "gbrs" and "array" are also accepted.
 #' @param min_delta_best_labeled Flag mismatch if best - labeled >= this (default 0.05)
 #' @param min_delta_best_second Require best - second >= this for "confident" (default 0.02)
 #' @export
 genoprobs_detect_sample_swaps.matrix <- function(x,
-                                                  sample_map = NULL,
-                                                  min_delta_best_labeled = 0.05,
-                                                  min_delta_best_second  = 0.02,
-                                                  ...) {
-    sim <- x
+                                                sample_map = NULL,
+                                                min_delta_best_labeled = 0.05,
+                                                min_delta_best_second  = 0.02,
+                                                ...) {
+  sim <- x
 
-    # =========================================================================
-    # STEP 1: Validate input and extract sample names
-    # =========================================================================
-    # The similarity matrix sim has:
-    #   - ROWS = one set of samples (e.g., genoprobs from platform/build A: MUGA GRCm38, etc.)
-    #   - COLS = the other set (e.g., genoprobs from platform/build B: MUGA GRCm39, GBRS, etc.)
-    # Each cell sim[i,j] = correlation/similarity between row sample i and col sample j.
-    # Row and col can be any two comparable sources (e.g. two arrays, or array vs haplotype).
+  # =========================================================================
+  # STEP 1: Validate input and extract sample names
+  # =========================================================================
+  # The similarity matrix sim has:
+  #   - ROWS = one set of samples (row set)
+  #   - COLS = the other set (col set)
+  # Each cell sim[i,j] = similarity between row sample i and col sample j.
+  # We rely on rownames/colnames as the sample IDs.
+  #
+  # NOTE: This function assumes "larger = more similar". For Pearson/cosine,
+  # larger is better (1 is perfect match). If you ever pass a distance matrix,
+  # you must convert it (e.g., similarity = -distance) before using this.
 
-    # Require both row and column names to exist; we use them as sample IDs
-    if (is.null(rownames(sim)) || is.null(colnames(sim))) {
-        stop("sim must have rownames (row samples) and colnames (col samples).")
+  if (!is.matrix(sim)) {
+    stop("x must be a matrix for the .matrix method.")
+  }
+  if (is.null(rownames(sim)) || is.null(colnames(sim))) {
+    stop("sim must have rownames (row samples) and colnames (col samples).")
+  }
+
+  row_samples <- rownames(sim)
+  col_samples <- colnames(sim)
+
+  # Guard against duplicated sample IDs. Duplicates make mapping & swap logic ambiguous.
+  if (anyDuplicated(row_samples)) stop("Row sample names (rownames(sim)) contain duplicates.")
+  if (anyDuplicated(col_samples)) stop("Col sample names (colnames(sim)) contain duplicates.")
+
+  # =========================================================================
+  # STEP 2: Build or validate sample_map (col -> row expected pairing)
+  # =========================================================================
+  # sample_map tells us: for each col sample, which row sample it is EXPECTED to match.
+  #
+  # If sample_map is NULL, we assume "same IDs should match", but still return output
+  # for all columns; columns without a same-named row become unmapped.
+
+  if (is.null(sample_map)) {
+    shared <- intersect(row_samples, col_samples)
+    sample_map <- data.frame(col_sample = shared,
+                             row_sample = shared,
+                             stringsAsFactors = FALSE)
+  } else {
+    nm <- names(sample_map)
+
+    # Only accept explicit col_sample/row_sample
+    if (!all(c("col_sample", "row_sample") %in% nm)) {
+      stop('sample_map must have columns "col_sample" and "row_sample".')
+    }
+    sample_map <- sample_map[, c("col_sample", "row_sample"), drop = FALSE]
+
+    # Sanity checks: duplicates usually indicate metadata problems.
+    if (anyDuplicated(sample_map$col_sample)) {
+      stop("sample_map has duplicated col_sample entries; mapping must be 1-to-1 by col_sample.")
+    }
+    # Duplicated row_sample may or may not be allowed; warn by default because swaps become ambiguous.
+    if (anyDuplicated(sample_map$row_sample)) {
+      warning("sample_map has duplicated row_sample values. Reciprocal swap detection may be ambiguous.")
     }
 
-    # Extract the ordered list of sample IDs from matrix dimensions
-    row_samples <- rownames(sim)  # e.g., c("DO001", "DO002", ...)
-    col_samples <- colnames(sim)  # e.g., c("DO001", "DO002", ...)
+    # Keep only mappings present in the matrix
+    sample_map <- sample_map[sample_map$col_sample %in% col_samples &
+                               sample_map$row_sample %in% row_samples, , drop = FALSE]
+  }
 
-    # =========================================================================
-    # STEP 2: Build or validate sample_map (col -> row expected pairing)
-    # =========================================================================
-    # sample_map tells us: "col sample X is EXPECTED to match row sample Y"
-    # (e.g., from metadata: "DO001 from source B" should correspond to "DO001 from source A")
+  # expected_row[col] = expected row sample name (or NA if unmapped)
+  expected_row <- setNames(sample_map$row_sample, sample_map$col_sample)
+  expected_row <- expected_row[col_samples]  # reorder to match matrix columns; introduces NA for unmapped
 
-    if (is.null(sample_map)) {
-        # No mapping provided: assume col and row use same IDs, and each col
-        # sample is expected to match the row sample with the SAME name
-        shared <- intersect(row_samples, col_samples)  # samples present in BOTH
-        sample_map <- data.frame(col_sample = shared, row_sample = shared, stringsAsFactors = FALSE)
-    } else {
-        # User provided a mapping: validate it has required columns
-        # Accept legacy names "gbrs"/"array" as well as generic "col_sample"/"row_sample"
-        nm <- names(sample_map)
-        if (all(c("col_sample", "row_sample") %in% nm)) {
-            sample_map <- sample_map[, c("col_sample", "row_sample"), drop = FALSE]
-        } else if (all(c("gbrs", "array") %in% nm)) {
-            sample_map <- data.frame(col_sample = sample_map$gbrs, row_sample = sample_map$array, stringsAsFactors = FALSE)
-        } else {
-            stop("sample_map must have columns 'col_sample' and 'row_sample' (or legacy 'gbrs' and 'array').")
-        }
-        # Keep only rows where BOTH col and row sample exist in the sim matrix
-        # (filter out any mappings to samples not in our data)
-        sample_map <- sample_map[sample_map$col_sample %in% col_samples &
-                                     sample_map$row_sample %in% row_samples, , drop = FALSE]
+  # =========================================================================
+  # STEP 3: For each col sample, find best and second-best row matches
+  # =========================================================================
+  # We do this in a vectorized way:
+  #   best_idx[j]   = which.max(sim[,j])  (ties broken by first)
+  #   second_idx[j] = best of remaining after masking out best
+  #
+  # IMPORTANT EDGE CASE:
+  # - If an entire column is NA (no similarities computable), best/second should be NA.
+
+  # Identify columns that contain at least one finite value
+  col_has_value <- vapply(seq_along(col_samples), function(j) any(is.finite(sim[, j])), logical(1))
+
+  best_idx <- rep(NA_integer_, length(col_samples))
+  best_r   <- rep(NA_real_,    length(col_samples))
+
+  # max.col(m) returns column index of max in each ROW; we need row index of max in each COLUMN.
+  # So use max.col(t(sim_sub)) to get, per column of sim_sub, which row has the max.
+  if (any(col_has_value)) {
+    sim_sub <- sim[, col_has_value, drop = FALSE]
+    best_idx[col_has_value] <- max.col(t(sim_sub), ties.method = "first")
+    best_r[col_has_value]   <- sim[cbind(best_idx[col_has_value], which(col_has_value))]
+  }
+
+  best_row_sample <- ifelse(is.na(best_idx), NA_character_, row_samples[best_idx])
+
+  # Second-best: mask out the best entry per column, then take max again.
+  second_idx <- rep(NA_integer_, length(col_samples))
+  second_r   <- rep(NA_real_,    length(col_samples))
+
+  if (any(col_has_value) && nrow(sim) >= 2) {
+    sim2 <- sim[, col_has_value, drop = FALSE]
+    # mask best entries (one per column)
+    j_good <- which(col_has_value)
+    sim2[cbind(best_idx[col_has_value], seq_along(j_good))] <- -Inf
+    # row index of max in each column: max.col(t(sim2))
+    second_idx[col_has_value] <- max.col(t(sim2), ties.method = "first")
+    # if original column had only one finite entry, second could be -Inf; treat as NA
+    tmp_second_r <- sim[cbind(second_idx[col_has_value], j_good)]
+    tmp_second_r[!is.finite(tmp_second_r)] <- NA_real_
+    second_r[col_has_value] <- tmp_second_r
+  }
+
+  second_row_sample <- ifelse(is.na(second_idx), NA_character_, row_samples[second_idx])
+
+  # Optional tie diagnostics (cheap + useful): how many rows share the best score?
+  # This helps interpret "ambiguous" cases.
+  n_at_best <- vapply(seq_along(col_samples), function(j) {
+    if (!col_has_value[j]) return(NA_integer_)
+    mx <- max(sim[, j], na.rm = TRUE)
+    sum(sim[, j] == mx, na.rm = TRUE)
+  }, integer(1))
+
+  # =========================================================================
+  # STEP 4: Similarity of each col sample to its LABELED (expected) row
+  # =========================================================================
+  labeled_r <- vapply(seq_along(col_samples), function(j) {
+    r <- expected_row[[j]]
+    if (is.na(r)) return(NA_real_)
+    sim[r, col_samples[j]]
+  }, numeric(1))
+
+  # =========================================================================
+  # STEP 5: Compute deltas used for flagging
+  # =========================================================================
+  # delta_best_second:
+  #   - Large means best is clearly better than runner-up (confident assignment)
+  #   - Small means ambiguous (best ~ second)
+  #
+  # delta_best_labeled:
+  #   - Large means best is much better than expected label -> possible swap/mislabel
+
+  delta_best_second  <- best_r - second_r
+  delta_best_labeled <- best_r - labeled_r
+
+  # =========================================================================
+  # STEP 6: Assign flags based on match quality and deltas
+  # =========================================================================
+  flag <- rep("match", length(col_samples))
+
+  # If no expected mapping -> unmapped
+  flag[is.na(expected_row)] <- "unmapped"
+
+  # If the column has no usable similarity values, we also call it unmapped-like.
+  # (You could choose a different label; "unmapped" is convenient and conservative.)
+  flag[!col_has_value] <- "unmapped"
+
+  # For mapped columns, apply mismatch/match ambiguity logic.
+  mapped <- !is.na(expected_row) & col_has_value
+
+  # Confident mismatch: best != expected AND best beats expected by enough AND best beats second by enough
+  flag[mapped &
+         (best_row_sample != expected_row) &
+         (delta_best_labeled >= min_delta_best_labeled) &
+         (delta_best_second  >= min_delta_best_second)] <- "mismatch_confident"
+
+  # Ambiguous mismatch: best != expected AND best beats expected by enough BUT does NOT clearly beat second
+  flag[mapped &
+         (best_row_sample != expected_row) &
+         (delta_best_labeled >= min_delta_best_labeled) &
+         (!is.na(delta_best_second) & delta_best_second < min_delta_best_second)] <- "mismatch_ambiguous"
+
+  # Ambiguous match: best == expected but second is close (or best is tied)
+  flag[mapped &
+         (best_row_sample == expected_row) &
+         (
+           (!is.na(delta_best_second) & delta_best_second < min_delta_best_second) |
+             (!is.na(n_at_best) & n_at_best > 1L)
+         )] <- "match_ambiguous"
+
+  # =========================================================================
+  # STEP 7: Build the output data.frame
+  # =========================================================================
+  out <- data.frame(
+    col_sample           = col_samples,
+    expected_row_sample  = unname(expected_row),
+    labeled_r            = labeled_r,
+    best_row_sample      = best_row_sample,
+    best_r               = best_r,
+    second_row_sample    = second_row_sample,
+    second_r             = second_r,
+    delta_best_second    = delta_best_second,
+    delta_best_labeled   = delta_best_labeled,
+    n_at_best            = n_at_best,   # NEW: helps interpret ambiguous/ties
+    flag                 = flag,
+    stringsAsFactors     = FALSE
+  )
+
+  # =========================================================================
+  # STEP 8: Identify reciprocal swap pairs (A↔B swapped)
+  # =========================================================================
+  # A reciprocal swap means:
+  #   - Col sample c1 best-matches row sample that is the expected row for c2
+  #   - Col sample c2 best-matches row sample that is the expected row for c1
+  #
+  # NOTE: This logic assumes the mapping is roughly 1-to-1. If multiple columns map to
+  # the same expected row, you can still get pairs but they may not be unique.
+
+  reciprocal <- rep(NA_character_, nrow(out))
+
+  idx_mis <- which(out$flag %in% c("mismatch_confident", "mismatch_ambiguous") &
+                     !is.na(out$expected_row_sample) &
+                     !is.na(out$best_row_sample))
+
+  best_row <- setNames(out$best_row_sample, out$col_sample)
+  exp_row  <- setNames(out$expected_row_sample, out$col_sample)
+
+  for (i in idx_mis) {
+    c1 <- out$col_sample[i]
+    candidates <- names(exp_row)[exp_row == best_row[[c1]]]
+
+    for (c2 in candidates) {
+      if (!is.na(best_row[[c2]]) && best_row[[c2]] == exp_row[[c1]]) {
+        rid <- paste0("swap:", paste(sort(c(c1, c2)), collapse = "<->"))
+        reciprocal[match(c1, out$col_sample)] <- rid
+        reciprocal[match(c2, out$col_sample)] <- rid
+      }
     }
+  }
 
-    # Create a named vector: for each col sample, what row sample is it SUPPOSED to match?
-    # expected_row["DO001"] = "DO001" means: "DO001 (col) should match DO001 (row)"
-    expected_row <- setNames(sample_map$row_sample, sample_map$col_sample)
-    # Reorder to match the column order of sim; samples not in sample_map become NA
-    expected_row <- expected_row[col_samples]
-
-    # =========================================================================
-    # STEP 3: For each col sample, find the best and second-best row match
-    # =========================================================================
-    # We iterate over columns of sim. Column j = similarities of all row samples
-    # to col sample j. We find which row sample has highest similarity (best)
-    # and which has second-highest (second).
-
-    best_row_sample   <- character(length(col_samples))  # best matching row sample name
-    best_r            <- numeric(length(col_samples))     # similarity of best match
-    second_row_sample <- character(length(col_samples))  # second-best row sample name
-    second_r          <- numeric(length(col_samples))     # similarity of second-best match
-
-    for (j in seq_along(col_samples)) {
-        # Get column j: similarity of every row sample to this col sample
-        col_vec <- sim[, j]
-
-        # Order indices by similarity, descending (highest first), NAs last
-        ord <- order(col_vec, decreasing = TRUE, na.last = TRUE)
-
-        # First element = index of row sample with highest similarity
-        best_row_sample[j] <- row_samples[ord[1]]
-        best_r[j] <- col_vec[ord[1]]  # the actual similarity value
-
-        if (length(ord) >= 2) {
-            # Second element = second-best matching row sample
-            second_row_sample[j] <- row_samples[ord[2]]
-            second_r[j] <- col_vec[ord[2]]
-        } else {
-            # Only one row sample (or none); no "second" exists
-            second_row_sample[j] <- NA_character_
-            second_r[j] <- NA_real_
-        }
-    }
-
-    # =========================================================================
-    # STEP 4: Get the similarity of each col sample to its LABELED (expected) row
-    # =========================================================================
-    # For each col sample j: look up sim[expected_row[j], j]
-    # i.e., the similarity between col j and the row sample we EXPECT it to match
-
-    labeled_r <- vapply(seq_along(col_samples), function(j) {
-        r <- expected_row[[j]]  # the row sample we expect to match
-        if (is.na(r)) return(NA_real_)  # no expected match (unmapped)
-        # sim[row_sample, col_sample] = similarity between that pair
-        sim[r, col_samples[j]]
-    }, numeric(1))
-
-    # =========================================================================
-    # STEP 5: Compute deltas (differences) used for flagging
-    # =========================================================================
-    # delta_best_second:  How much better is best than second?
-    #   - Large = one clear winner (confident call)
-    #   - Small = best and second are close (ambiguous)
-    delta_best_second  <- best_r - second_r
-
-    # delta_best_labeled: How much better is best than the labeled (expected) match?
-    #   - Large = the best match is clearly NOT the expected one (suggests swap/mislabel)
-    #   - Small or negative = best and labeled are similar (probably correct)
-    delta_best_labeled <- best_r - labeled_r
-
-    # =========================================================================
-    # STEP 6: Assign flags based on match quality and deltas
-    # =========================================================================
-    # Start with "match" for everyone; then overwrite based on conditions
-    flag <- rep("match", length(col_samples))
-
-    # unmapped: no expected row sample for this col sample (can't check)
-    flag[is.na(expected_row)] <- "unmapped"
-
-    # mismatch_confident: best != expected AND we're confident it's a real mismatch
-    #   - delta_best_labeled >= threshold: best is clearly better than expected
-    #   - delta_best_second >= threshold: best is clearly better than second (not ambiguous)
-    flag[!is.na(expected_row) & (best_row_sample != expected_row) &
-             (delta_best_labeled >= min_delta_best_labeled) &
-             (delta_best_second  >= min_delta_best_second)] <- "mismatch_confident"
-
-    # mismatch_ambiguous: best != expected but second-best is close to best
-    #   - We suspect a mismatch, but could be noise (best and second nearly tied)
-    flag[!is.na(expected_row) & (best_row_sample != expected_row) &
-             (delta_best_labeled >= min_delta_best_labeled) &
-             (delta_best_second  <  min_delta_best_second)] <- "mismatch_ambiguous"
-
-    # match_ambiguous: best == expected (correct!) but second is close to best
-    #   - Probably correct, but if labels were wrong we couldn't tell (ambiguous)
-    flag[!is.na(expected_row) & (best_row_sample == expected_row) &
-             (delta_best_second  <  min_delta_best_second)] <- "match_ambiguous"
-
-    # =========================================================================
-    # STEP 7: Build the output data.frame
-    # =========================================================================
-    out <- data.frame(
-        col_sample = col_samples,
-        expected_row_sample = unname(expected_row),  # expected row match
-        labeled_r = labeled_r,                       # similarity to expected
-        best_row_sample = best_row_sample,            # actual best row match
-        best_r = best_r,                              # similarity to best
-        second_row_sample = second_row_sample,        # second-best row match
-        second_r = second_r,                          # similarity to second-best
-        delta_best_second = delta_best_second,        # best - second
-        delta_best_labeled = delta_best_labeled,      # best - labeled
-        flag = flag,
-        stringsAsFactors = FALSE
-    )
-
-    # =========================================================================
-    # STEP 8: Identify reciprocal swap pairs (A↔B swapped)
-    # =========================================================================
-    # A reciprocal swap: col A's best match is row B, and col B's best match is row A
-    # i.e., best_row[A]==expected_row[B] and best_row[B]==expected_row[A]
-    # We tag both A and B with the same reciprocal_pair ID (e.g., "swap:A<->B")
-
-    reciprocal <- rep(NA_character_, nrow(out))  # will hold "swap:X<->Y" or NA
-
-    # Only consider rows that are mismatches (confident or ambiguous) and have an expected sample
-    idx_mis <- which(out$flag %in% c("mismatch_confident", "mismatch_ambiguous") &
-                         !is.na(out$expected_row_sample))
-
-    # Named vectors for quick lookup:
-    # best_row[col] = row sample that best matches this col sample
-    # exp_row[col]  = row sample we EXPECT to match this col sample (labeled)
-    best_row <- setNames(out$best_row_sample, out$col_sample)
-    exp_row  <- setNames(out$expected_row_sample, out$col_sample)
-
-    for (i in idx_mis) {
-        c1 <- out$col_sample[i]  # first col sample in potential swap pair
-
-        # For a swap, we need c2 such that:
-        #   best_row[c1] == exp_row[c2]  (c1's best match is c2's expected row)
-        #   best_row[c2] == exp_row[c1]  (c2's best match is c1's expected row)
-        # So: find all c2 whose EXPECTED row equals c1's BEST match
-        candidates <- names(exp_row)[exp_row == best_row[[c1]]]
-
-        for (c2 in candidates) {
-            # Check the reverse: does c2's best match equal c1's expected row?
-            if (!is.na(best_row[[c2]]) && best_row[[c2]] == exp_row[[c1]]) {
-                # Yes! c1 and c2 form a reciprocal swap pair
-                rid <- paste0("swap:", paste(sort(c(c1, c2)), collapse = "<->"))
-                # Assign same ID to both rows (sort ensures consistent ordering)
-                reciprocal[match(c1, out$col_sample)] <- rid
-                reciprocal[match(c2, out$col_sample)] <- rid
-            }
-        }
-    }
-
-    out$reciprocal_pair <- reciprocal
-    out
+  out$reciprocal_pair <- reciprocal
+  out
 }
+
 
 #' @rdname genoprobs_detect_sample_swaps
 #' @param x For \code{.calc_genoprob} method: first calc_genoprob object.
 #' @param genoprobs_2 Second calc_genoprob object (required when x is a calc_genoprob object).
 #' @param sample_map Optional data.frame with columns c("col_sample", "row_sample") giving
 #'   expected pairing: for each col sample, which row sample it is expected to match.
-#'   Legacy columns "gbrs" and "array" are also accepted.
 #' @param metric Similarity metric to use when computing similarity matrix.
 #'   One of \code{'pearson'} or \code{'cosine'} (default \code{'pearson'}).
 #'   Only used when x is a calc_genoprob object.
@@ -276,10 +306,10 @@ genoprobs_detect_sample_swaps.calc_genoprob <- function(x,
                                                          ...) {
     genoprobs_1 <- x
     metric <- match.arg(metric)
-    
+
     # Compute similarity matrix first
     sim_result <- genoprobs_compute_similarity(genoprobs_1, genoprobs_2, metric = metric)
-    
+
     # Then call the matrix method
     genoprobs_detect_sample_swaps.matrix(
         sim_result$sim,
