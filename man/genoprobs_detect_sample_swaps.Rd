@@ -2,81 +2,179 @@
 % Please edit documentation in R/genoprobs-detect-sample-swaps.R
 \name{genoprobs_detect_sample_swaps}
 \alias{genoprobs_detect_sample_swaps}
-\alias{genoprobs_detect_sample_swaps.matrix}
-\alias{genoprobs_detect_sample_swaps.calc_genoprob}
-\alias{genoprobs_detect_sample_swaps.default}
-\title{Detect likely sample swaps from a similarity matrix or two genoprob objects}
+\title{Detect sample swaps with robust, evidence-layered logic (column-centric view)}
 \usage{
-genoprobs_detect_sample_swaps(x, ...)
-
-\method{genoprobs_detect_sample_swaps}{matrix}(
+genoprobs_detect_sample_swaps(
   x,
-  sample_map = NULL,
-  min_delta_best_labeled = 0.05,
-  min_delta_best_second = 0.02,
-  ...
-)
-
-\method{genoprobs_detect_sample_swaps}{calc_genoprob}(
-  x,
-  genoprobs_2,
+  genoprobs_2 = NULL,
   sample_map = NULL,
   metric = c("pearson", "cosine"),
+  assignment_method = c("greedy", "hungarian"),
   min_delta_best_labeled = 0.05,
   min_delta_best_second = 0.02,
+  min_finite_per_col = 25L,
+  min_z_best = 3,
+  max_empirical_p_best = 0.05,
+  near_tie_gap = 0.01,
+  allow_no_call = TRUE,
   ...
 )
-
-\method{genoprobs_detect_sample_swaps}{default}(x, ...)
 }
 \arguments{
-\item{x}{For \code{.calc_genoprob} method: first calc_genoprob object.}
+\item{x}{A similarity matrix (\code{rows = row samples}, \code{cols = col samples})
+or the first \code{calc_genoprob} object.}
 
-\item{...}{Additional arguments passed to methods. See method-specific documentation.}
+\item{genoprobs_2}{Optional second \code{calc_genoprob} object when \code{x} is a
+\code{calc_genoprob}.}
 
-\item{sample_map}{Optional data.frame with columns c("col_sample", "row_sample") giving
-expected pairing: for each col sample, which row sample it is expected to match.}
+\item{sample_map}{Optional data.frame with columns
+\code{c("col_sample","row_sample")} describing expected pairings.
+If \code{NULL}, same-name mapping is used where available.}
 
-\item{min_delta_best_labeled}{Flag mismatch if best - labeled >= this (default 0.05)}
+\item{metric}{Similarity metric for \code{calc_genoprob} inputs:
+\code{"pearson"} or \code{"cosine"}.}
 
-\item{min_delta_best_second}{Require best - second >= this for "confident" (default 0.02)}
+\item{assignment_method}{One-to-one assignment strategy:
+\code{"greedy"} (always available) or \code{"hungarian"}.
+If \code{"hungarian"} is requested but package \pkg{clue} is unavailable,
+the function falls back to \code{"greedy"} and emits a warning.}
 
-\item{genoprobs_2}{Second calc_genoprob object (required when x is a calc_genoprob object).}
+\item{min_delta_best_labeled}{Minimum \code{best - labeled} to call a mismatch.}
 
-\item{metric}{Similarity metric to use when computing similarity matrix.
-One of \code{'pearson'} or \code{'cosine'} (default \code{'pearson'}).
-Only used when x is a calc_genoprob object.}
+\item{min_delta_best_second}{Minimum \code{best - second} for confident calls.}
+
+\item{min_finite_per_col}{Minimum number of finite similarities required to
+consider a column evaluable; otherwise \code{"no_call"}.}
+
+\item{min_z_best}{Minimum z-score of best-vs-background for confidence.}
+
+\item{max_empirical_p_best}{Maximum empirical tail probability for confidence.}
+
+\item{near_tie_gap}{Gap to define "near ties" to the best value, used for
+mixture/ambiguity diagnostics.}
+
+\item{allow_no_call}{If \code{TRUE}, low-information columns become \code{"no_call"}.
+If \code{FALSE}, they are labeled \code{"unmapped"} for compatibility with
+older workflows that do not expect \code{"no_call"}.}
+
+\item{...}{Reserved for forward compatibility.}
 }
 \value{
-data.frame with columns:
+data.frame with one row per column sample and columns:
 \describe{
-  \item{col_sample}{Sample ID from the column set (genoprobs_2 or second object)}
-  \item{expected_row_sample}{Expected matching sample from row set}
-  \item{labeled_r}{Similarity to expected match}
-  \item{best_row_sample}{Actual best matching sample from row set}
-  \item{best_r}{Similarity to best match}
-  \item{second_row_sample}{Second-best matching sample}
-  \item{second_r}{Similarity to second-best match}
-  \item{delta_best_second}{Difference: best - second}
-  \item{delta_best_labeled}{Difference: best - labeled}
-  \item{flag}{Match status: "match", "match_ambiguous", "mismatch_confident", "mismatch_ambiguous", or "unmapped"}
-  \item{reciprocal_pair}{For swaps, identifier like "swap:A<->B"}
+  \item{col_sample}{Column sample ID.}
+  \item{expected_row_sample}{Expected row sample ID (or \code{NA}).}
+  \item{labeled_r}{Similarity to expected row sample.}
+  \item{best_row_sample}{Best local row match (column-wise max).}
+  \item{best_r}{Similarity to best local row match.}
+  \item{second_row_sample}{Second-best local row match.}
+  \item{second_r}{Similarity to second-best local row match.}
+  \item{delta_best_second}{\code{best_r - second_r}.}
+  \item{delta_best_labeled}{\code{best_r - labeled_r}.}
+  \item{n_finite}{Count of finite similarities in the column.}
+  \item{n_at_best}{How many rows tie for best similarity.}
+  \item{n_near_best}{How many rows are within \code{near_tie_gap} of best.}
+  \item{z_best}{Column-wise z-score of best relative to finite background.}
+  \item{p_empirical_best}{Empirical upper-tail probability of best among
+    finite row similarities in that column.}
+  \item{global_row_sample}{Row assigned by global one-to-one assignment.}
+  \item{assignment_consistent}{Whether global assignment equals local best.}
+  \item{flag}{One of:
+    \code{"match_confident"},
+    \code{"match_ambiguous"},
+    \code{"mismatch_confident"},
+    \code{"mismatch_ambiguous"},
+    \code{"possible_mixture"},
+    \code{"no_call"},
+    \code{"unmapped"}.}
+  \item{swap_group_id}{ID of connected mismatch group (if any).}
+  \item{swap_group_type}{\code{"pair"}, \code{"cycle"}, or \code{"complex"}.}
 }
 }
 \description{
-Generic function to detect sample swaps. Can accept either:
+\code{genoprobs_detect_sample_swaps()} is a "max robustness" reference
+implementation for sample identity QC between two sample sets. It interprets
+the input similarity matrix in a **column‑centric, query‑vs‑reference**
+fashion:
+
+- **Rows** are the *reference* sample set (typically the more trusted set).
+- **Columns** are the *query* sample set whose labels you are checking.
+
+For each **column sample** (query), it asks:
+
+> "Which reference sample (row) is my best match, how different is that from
+> my expected label, and is the evidence strong enough to confidently call
+> a match, mismatch, or mixture?"
+
+The function is intentionally conservative and explicit:
 \itemize{
-  \item A similarity matrix (from \code{genoprobs_compute_similarity}) - dispatches to \code{.matrix} method
-  \item Two calc_genoprob objects - dispatches to \code{.calc_genoprob} method (computes similarity first)
+  \item It keeps the familiar local evidence (best vs. second; best vs. expected).
+  \item It adds empirical calibration (z-score and empirical tail probability).
+  \item It adds one-to-one global assignment (greedy by default; Hungarian if \pkg{clue} is available).
+  \item It marks low-information columns as \code{"no_call"} instead of forcing decisions.
+  \item It annotates swap groups beyond simple reciprocal pairs.
+}
+
+Why this shape? In practical bioinformatics QC pipelines, false certainty is
+usually more harmful than an explicit inconclusive call. This function is
+designed to make evidence and uncertainty visible, not hidden.
+}
+\section{Inputs and orientation}{
+
+You may provide either:
+\itemize{
+  \item a precomputed similarity matrix \code{x} with row/column sample
+    names, interpreted as
+    \itemize{
+      \item \code{rownames(x)} = reference samples
+      \item \code{colnames(x)} = query samples (one output row per column)
+    }
+  \item or two \code{calc_genoprob} objects (\code{x} and \code{genoprobs_2}),
+    in which case similarity is computed internally via
+    \code{\link{genoprobs_compute_similarity}} with:
+    \itemize{
+      \item \code{x}     → reference genoprobs (rows of the similarity matrix)
+      \item \code{genoprobs_2} → query genoprobs (columns of the matrix)
+    }
+}
+
+In all cases, similarity must satisfy "larger means more similar"
+(e.g. Pearson/cosine), and the resulting matrix is treated as
+\code{rows = reference}, \code{cols = query}.
+}
+
+\section{Decision strategy (high level)}{
+
+For each **column sample** (i.e. each query sample) the function:
+\enumerate{
+  \item Finds the best and second-best **row** (reference) match.
+  \item Compares the best match to the expected label (from \code{sample_map}
+        or same‑ID default).
+  \item Estimates whether the best is exceptional relative to that column's
+        background (z‑score, empirical p‑value).
+  \item Applies confidence-aware flags; may emit \code{"no_call"} instead of
+        forcing a decision on weak evidence.
+  \item Optionally compares the local best with a global one-to-one
+        assignment (so that each reference is used at most once).
 }
 }
+
 \examples{
 \dontrun{
-# Method 1: From similarity matrix
-sim_result <- genoprobs_compute_similarity(gp_a, gp_b)
-swaps <- genoprobs_detect_sample_swaps(sim_result$sim, sample_map)
+# Similarity matrix input
+sim_res <- genoprobs_compute_similarity(gp_a, gp_b, metric = "pearson")
+out <- genoprobs_detect_sample_swaps(
+  sim_res$sim,
+  sample_map = sample_map,
+  assignment_method = "hungarian"
+)
 
-# Method 2: From genoprob objects (convenience wrapper)
-swaps <- genoprobs_detect_sample_swaps(gp_a, gp_b, sample_map, metric = 'pearson')
+# calc_genoprob input (computes similarity first)
+out2 <- genoprobs_detect_sample_swaps(
+  gp_a,
+  genoprobs_2 = gp_b,
+  sample_map = sample_map,
+  metric = "cosine"
+)
 }
 }

@@ -50,6 +50,30 @@ genoprobs_compute_similarity <- function(genoprobs_1, genoprobs_2,
                                 by_chr = FALSE) {
     metric <- match.arg(metric)
 
+    # Compute pairwise sufficient statistics while handling NA/Inf robustly.
+    # For each sample pair (i, j), keep only features where BOTH are finite.
+    pairwise_stats <- function(Xa, Xb) {
+        Mx <- is.finite(Xa)
+        My <- is.finite(Xb)
+
+        Xa0 <- Xa
+        Xb0 <- Xb
+        Xa0[!Mx] <- 0
+        Xb0[!My] <- 0
+
+        Mx_num <- matrix(as.numeric(Mx), nrow = nrow(Xa), ncol = ncol(Xa))
+        My_num <- matrix(as.numeric(My), nrow = nrow(Xb), ncol = ncol(Xb))
+
+        list(
+            n_pair = Mx_num %*% t(My_num),
+            sumxy = Xa0 %*% t(Xb0),
+            sumx = Xa0 %*% t(My_num),
+            sumx2 = (Xa0 * Xa0) %*% t(My_num),
+            sumy = Mx_num %*% t(Xb0),
+            sumy2 = Mx_num %*% t(Xb0 * Xb0)
+        )
+    }
+
     # =========================================================================
     # STEP 1: Validate shared chromosomes and get sample lists
     # =========================================================================
@@ -80,10 +104,11 @@ genoprobs_compute_similarity <- function(genoprobs_1, genoprobs_2,
     # similarity of genoprobs_1 sample i with genoprobs_2 sample j. Rows = genoprobs_1 (sa), cols = genoprobs_2 (sb).
 
     sumxy <- matrix(0, nrow = n_a, ncol = n_b, dimnames = list(sa, sb))
-    sumx  <- numeric(n_a)
-    sumx2 <- numeric(n_a)
-    sumy  <- numeric(n_b)
-    sumy2 <- numeric(n_b)
+    sumx  <- matrix(0, nrow = n_a, ncol = n_b, dimnames = list(sa, sb))
+    sumx2 <- matrix(0, nrow = n_a, ncol = n_b, dimnames = list(sa, sb))
+    sumy  <- matrix(0, nrow = n_a, ncol = n_b, dimnames = list(sa, sb))
+    sumy2 <- matrix(0, nrow = n_a, ncol = n_b, dimnames = list(sa, sb))
+    n_pair <- matrix(0, nrow = n_a, ncol = n_b, dimnames = list(sa, sb))
     p_tot <- 0L  # total features (markers * haplotypes) across all chr
 
     # Optional: per-chromosome similarity matrices (same layout as sim)
@@ -138,32 +163,34 @@ genoprobs_compute_similarity <- function(genoprobs_1, genoprobs_2,
         Xa <- matrix(aperm(A, c(1, 3, 2)), nrow = n_a)
         Xb <- matrix(aperm(B, c(1, 3, 2)), nrow = n_b)
 
-        # Accumulate for whole-genome Pearson/cosine:
-        # sumx/sumx2 = row sums and sum of squares for genoprobs_1; sumy/sumy2 for genoprobs_2
-        # sumxy[i,j] = dot product of genoprobs_1 sample i with genoprobs_2 sample j
-        sumx  <- sumx  + rowSums(Xa)
-        sumx2 <- sumx2 + rowSums(Xa * Xa)
-        sumy  <- sumy  + rowSums(Xb)
-        sumy2 <- sumy2 + rowSums(Xb * Xb)
-        sumxy <- sumxy + Xa %*% t(Xb)
+        # Accumulate pairwise sufficient stats over finite paired features only.
+        st <- pairwise_stats(Xa, Xb)
+        n_pair <- n_pair + st$n_pair
+        sumxy <- sumxy + st$sumxy
+        sumx  <- sumx  + st$sumx
+        sumx2 <- sumx2 + st$sumx2
+        sumy  <- sumy  + st$sumy
+        sumy2 <- sumy2 + st$sumy2
 
         # Optionally compute and store per-chromosome similarity matrix
         if (by_chr) {
             if (metric == 'cosine') {
                 # Cosine = dot(a,b) / (||a|| * ||b||)
-                denom <- sqrt(outer(rowSums(Xa * Xa), rowSums(Xb * Xb), '*'))
-                denom[denom == 0] <- NA_real_
-                sim_by_chr[[ch]] <- (Xa %*% t(Xb)) / denom
+                denom <- sqrt(st$sumx2 * st$sumy2)
+                denom[st$n_pair == 0 | denom == 0] <- NA_real_
+                sim_ch <- st$sumxy / denom
+                sim_ch[st$n_pair == 0] <- NA_real_
+                sim_by_chr[[ch]] <- sim_ch
             } else {
-                # Pearson for this chr: (sxy - p_ch*mean(x)*mean(y)) / (sd(x)*sd(y)); p_ch = number of features
-                sx  <- rowSums(Xa)
-                sx2 <- rowSums(Xa * Xa)
-                sy  <- rowSums(Xb)
-                sy2 <- rowSums(Xb * Xb)
-                sxy <- Xa %*% t(Xb)
-                denom <- sqrt(outer(sx2 - (sx * sx) / p_ch, sy2 - (sy * sy) / p_ch, '*'))
-                denom[denom == 0] <- NA_real_
-                sim_by_chr[[ch]] <- (sxy - outer(sx, sy, '*') / p_ch) / denom
+                # Pearson from pairwise stats for this chr (pairwise-complete).
+                n_ch <- st$n_pair
+                num <- st$sumxy - (st$sumx * st$sumy) / n_ch
+                vx <- st$sumx2 - (st$sumx * st$sumx) / n_ch
+                vy <- st$sumy2 - (st$sumy * st$sumy) / n_ch
+                denom <- sqrt(vx * vy)
+                sim_ch <- num / denom
+                sim_ch[n_ch < 2 | !is.finite(denom) | denom == 0] <- NA_real_
+                sim_by_chr[[ch]] <- sim_ch
             }
             rownames(sim_by_chr[[ch]]) <- sa
             colnames(sim_by_chr[[ch]]) <- sb
@@ -178,15 +205,18 @@ genoprobs_compute_similarity <- function(genoprobs_1, genoprobs_2,
     # Same formula as per-chr but using totals (p_tot, sumx, sumy, sumx2, sumy2, sumxy).
 
     if (metric == 'cosine') {
-        denom <- sqrt(outer(sumx2, sumy2, '*'))
-        denom[denom == 0] <- NA_real_
+        denom <- sqrt(sumx2 * sumy2)
+        denom[n_pair == 0 | denom == 0] <- NA_real_
         sim <- sumxy / denom
+        sim[n_pair == 0] <- NA_real_
     } else {
         # Pearson: covariance / (sd_a * sd_b); variance = sumx2 - (sumx^2)/p_tot
-        denom <- sqrt(outer(sumx2 - (sumx * sumx) / p_tot,
-                          sumy2 - (sumy * sumy) / p_tot, '*'))
-        denom[denom == 0] <- NA_real_
-        sim <- (sumxy - outer(sumx, sumy, '*') / p_tot) / denom
+        num <- sumxy - (sumx * sumy) / n_pair
+        vx <- sumx2 - (sumx * sumx) / n_pair
+        vy <- sumy2 - (sumy * sumy) / n_pair
+        denom <- sqrt(vx * vy)
+        sim <- num / denom
+        sim[n_pair < 2 | !is.finite(denom) | denom == 0] <- NA_real_
     }
 
     list(sim = sim, sim_by_chr = sim_by_chr, n_features = p_tot)

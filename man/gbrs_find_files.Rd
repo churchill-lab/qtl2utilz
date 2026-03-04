@@ -7,7 +7,7 @@
 gbrs_find_files(
   directory,
   genoprobs_file_pattern = "\\\\.gbrs\\\\.interpolated\\\\.genoprobs\\\\.tsv$",
-  counts_file_pattern = "\\\\.diploid\\\\.genes\\\\.expected_read_counts"
+  counts_file_pattern = "\\\\.diploid\\\\.genes\\\\.expected_read_counts$"
 )
 }
 \arguments{

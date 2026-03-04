@@ -4,7 +4,7 @@
 \alias{gbrs_read_genoprobs_file}
 \title{Read a single GBRS genoprobs file.}
 \usage{
-gbrs_read_genoprobs_file(x)
+gbrs_read_genoprobs_file(path)
 }
 \arguments{
 \item{x}{Path to a GBRS genoprobs TSV file.}

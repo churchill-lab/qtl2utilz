@@ -32,6 +32,12 @@ gbrs_build_counts <- function(gbrs_files_tbl) {
     if(!all(c('sample_id', 'full_path_counts') %in% names(gbrs_files_tbl))) {
         stop('gbrs_files_tbl must contain "sample_id" and "full_path_counts"')
     }
+    if(nrow(gbrs_files_tbl) == 0) {
+        stop('gbrs_files_tbl has 0 rows; no count files to read.')
+    }
+    if(anyDuplicated(gbrs_files_tbl$sample_id)) {
+        stop('gbrs_files_tbl has duplicated sample_id values.')
+    }
 
     # read in the count files (one per sample)
     raw_counts <- sapply(
@@ -43,7 +49,18 @@ gbrs_build_counts <- function(gbrs_files_tbl) {
 
     names(raw_counts) <- gbrs_files_tbl$sample_id
 
-    # Sanity check: ensure all samples have the same locus IDs in the same order.
+    # validate required columns per file before downstream operations.
+    bad_schema <- names(raw_counts)[!vapply(raw_counts, function(x) {
+        all(c('locus', 'total') %in% names(x))
+    }, logical(1))]
+    if(length(bad_schema) > 0) {
+        stop(
+            'Count files are missing required columns (locus/total) for samples: ',
+            paste(bad_schema, collapse = ', ')
+        )
+    }
+
+    # sanity check: ensure all samples have the same locus IDs in the same order.
     locus_ref <- raw_counts[[1]]$locus
     locus_ok <- vapply(raw_counts[-1], function(x) identical(x$locus, locus_ref), logical(1))
     if (!all(locus_ok)) {
@@ -54,7 +71,7 @@ gbrs_build_counts <- function(gbrs_files_tbl) {
 
     # extract locus and total columns, bind rows, pivot to samples x genes
     all_counts <- raw_counts
-    for (i in 1:length(raw_counts)) {
+    for (i in seq_along(raw_counts)) {
         all_counts[[i]] <- dplyr::select(raw_counts[[i]], locus, total)
     }
 

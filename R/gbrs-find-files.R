@@ -61,21 +61,13 @@ get_files_tbl <- function(directory, file_pattern) {
 gbrs_find_files <- function(
         directory,
         genoprobs_file_pattern = '\\.gbrs\\.interpolated\\.genoprobs\\.tsv$',
-        counts_file_pattern = '\\.diploid\\.genes\\.expected_read_counts'
+        counts_file_pattern = '\\.diploid\\.genes\\.expected_read_counts$'
 ) {
     # get all genoprob files
     genoprobs_files_tbl <- get_files_tbl(directory, genoprobs_file_pattern)
 
     # get all count files
     counts_files_tbl <- get_files_tbl(directory, counts_file_pattern)
-
-    #
-    # WARNING: we are assuming that the genoprob files and counts files have
-    # the same sample id
-    #
-    if (nrow(genoprobs_files_tbl) != nrow(counts_files_tbl)) {
-        stop('ERROR: unequal number of genoprobs files and counts files')
-    }
 
     # verify sample_ids are in both genoprobs and counts files
     tmp <- setdiff(genoprobs_files_tbl$sample_id, counts_files_tbl$sample_id)
@@ -92,6 +84,15 @@ gbrs_find_files <- function(
         message(
             'The following sample identifiers have a counts file, but no',
             'genoprobs file: ', paste(tmp2, collapse = ', ')
+        )
+    }
+
+    if (nrow(genoprobs_files_tbl) == 0 || nrow(counts_files_tbl) == 0) {
+        stop(
+            'No matching GBRS files found. ',
+            'Found ', nrow(genoprobs_files_tbl), ' genoprobs files and ',
+            nrow(counts_files_tbl), ' counts files. ',
+            'Please verify directory and filename patterns.'
         )
     }
 

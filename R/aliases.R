@@ -1,3 +1,4 @@
+
 .qtl2utilz_aliases <- list(
     sample_id = c('sample_id', 'sample.id', 'sampleID', 'sample', 'mouse_id', 'mouse.id', 'mouseID', 'mouse'),
     marker_id = c('marker_id', 'marker.id', 'markerID', 'markerid', 'marker'),

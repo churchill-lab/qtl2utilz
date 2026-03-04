@@ -1,331 +1,575 @@
-#' Detect likely sample swaps from a similarity matrix or two genoprob objects
+#' Detect sample swaps with robust, evidence-layered logic (column-centric view)
 #'
-#' Generic function to detect sample swaps. Can accept either:
+#' @description
+#' \code{genoprobs_detect_sample_swaps()} is a "max robustness" reference
+#' implementation for sample identity QC between two sample sets. It interprets
+#' the input similarity matrix in a **column‑centric, query‑vs‑reference**
+#' fashion:
+#'
+#' - **Rows** are the *reference* sample set (typically the more trusted set).
+#' - **Columns** are the *query* sample set whose labels you are checking.
+#'
+#' For each **column sample** (query), it asks:
+#'
+#' > "Which reference sample (row) is my best match, how different is that from
+#' > my expected label, and is the evidence strong enough to confidently call
+#' > a match, mismatch, or mixture?"
+#'
+#' The function is intentionally conservative and explicit:
 #' \itemize{
-#'   \item A similarity matrix (from \code{genoprobs_compute_similarity}) - dispatches to \code{.matrix} method
-#'   \item Two calc_genoprob objects - dispatches to \code{.calc_genoprob} method (computes similarity first)
+#'   \item It keeps the familiar local evidence (best vs. second; best vs. expected).
+#'   \item It adds empirical calibration (z-score and empirical tail probability).
+#'   \item It adds one-to-one global assignment (greedy by default; Hungarian if \pkg{clue} is available).
+#'   \item It marks low-information columns as \code{"no_call"} instead of forcing decisions.
+#'   \item It annotates swap groups beyond simple reciprocal pairs.
 #' }
 #'
-#' @param x Either a similarity matrix or a calc_genoprob object.
-#' @param ... Additional arguments passed to methods. See method-specific documentation.
+#' Why this shape? In practical bioinformatics QC pipelines, false certainty is
+#' usually more harmful than an explicit inconclusive call. This function is
+#' designed to make evidence and uncertainty visible, not hidden.
 #'
-#' @return data.frame with columns:
+#' @section Inputs and orientation:
+#' You may provide either:
+#' \itemize{
+#'   \item a precomputed similarity matrix \code{x} with row/column sample
+#'     names, interpreted as
+#'     \itemize{
+#'       \item \code{rownames(x)} = reference samples
+#'       \item \code{colnames(x)} = query samples (one output row per column)
+#'     }
+#'   \item or two \code{calc_genoprob} objects (\code{x} and \code{genoprobs_2}),
+#'     in which case similarity is computed internally via
+#'     \code{\link{genoprobs_compute_similarity}} with:
+#'     \itemize{
+#'       \item \code{x}     → reference genoprobs (rows of the similarity matrix)
+#'       \item \code{genoprobs_2} → query genoprobs (columns of the matrix)
+#'     }
+#' }
+#'
+#' In all cases, similarity must satisfy "larger means more similar"
+#' (e.g. Pearson/cosine), and the resulting matrix is treated as
+#' \code{rows = reference}, \code{cols = query}.
+#'
+#' @section Decision strategy (high level):
+#' For each **column sample** (i.e. each query sample) the function:
+#' \enumerate{
+#'   \item Finds the best and second-best **row** (reference) match.
+#'   \item Compares the best match to the expected label (from \code{sample_map}
+#'         or same‑ID default).
+#'   \item Estimates whether the best is exceptional relative to that column's
+#'         background (z‑score, empirical p‑value).
+#'   \item Applies confidence-aware flags; may emit \code{"no_call"} instead of
+#'         forcing a decision on weak evidence.
+#'   \item Optionally compares the local best with a global one-to-one
+#'         assignment (so that each reference is used at most once).
+#' }
+#'
+#' @param x A similarity matrix (\code{rows = row samples}, \code{cols = col samples})
+#'   or the first \code{calc_genoprob} object.
+#' @param genoprobs_2 Optional second \code{calc_genoprob} object when \code{x} is a
+#'   \code{calc_genoprob}.
+#' @param sample_map Optional data.frame with columns
+#'   \code{c("col_sample","row_sample")} describing expected pairings.
+#'   If \code{NULL}, same-name mapping is used where available.
+#' @param metric Similarity metric for \code{calc_genoprob} inputs:
+#'   \code{"pearson"} or \code{"cosine"}.
+#' @param assignment_method One-to-one assignment strategy:
+#'   \code{"greedy"} (always available) or \code{"hungarian"}.
+#'   If \code{"hungarian"} is requested but package \pkg{clue} is unavailable,
+#'   the function falls back to \code{"greedy"} and emits a warning.
+#' @param min_delta_best_labeled Minimum \code{best - labeled} to call a mismatch.
+#' @param min_delta_best_second Minimum \code{best - second} for confident calls.
+#' @param min_finite_per_col Minimum number of finite similarities required to
+#'   consider a column evaluable; otherwise \code{"no_call"}.
+#' @param min_z_best Minimum z-score of best-vs-background for confidence.
+#' @param max_empirical_p_best Maximum empirical tail probability for confidence.
+#' @param near_tie_gap Gap to define "near ties" to the best value, used for
+#'   mixture/ambiguity diagnostics.
+#' @param allow_no_call If \code{TRUE}, low-information columns become \code{"no_call"}.
+#'   If \code{FALSE}, they are labeled \code{"unmapped"} for compatibility with
+#'   older workflows that do not expect \code{"no_call"}.
+#' @param ... Reserved for forward compatibility.
+#'
+#' @return data.frame with one row per column sample and columns:
 #' \describe{
-#'   \item{col_sample}{Sample ID from the column set (genoprobs_2 or second object)}
-#'   \item{expected_row_sample}{Expected matching sample from row set}
-#'   \item{labeled_r}{Similarity to expected match}
-#'   \item{best_row_sample}{Actual best matching sample from row set}
-#'   \item{best_r}{Similarity to best match}
-#'   \item{second_row_sample}{Second-best matching sample}
-#'   \item{second_r}{Similarity to second-best match}
-#'   \item{delta_best_second}{Difference: best - second}
-#'   \item{delta_best_labeled}{Difference: best - labeled}
-#'   \item{flag}{Match status: "match", "match_ambiguous", "mismatch_confident", "mismatch_ambiguous", or "unmapped"}
-#'   \item{reciprocal_pair}{For swaps, identifier like "swap:A<->B"}
+#'   \item{col_sample}{Column sample ID.}
+#'   \item{expected_row_sample}{Expected row sample ID (or \code{NA}).}
+#'   \item{labeled_r}{Similarity to expected row sample.}
+#'   \item{best_row_sample}{Best local row match (column-wise max).}
+#'   \item{best_r}{Similarity to best local row match.}
+#'   \item{second_row_sample}{Second-best local row match.}
+#'   \item{second_r}{Similarity to second-best local row match.}
+#'   \item{delta_best_second}{\code{best_r - second_r}.}
+#'   \item{delta_best_labeled}{\code{best_r - labeled_r}.}
+#'   \item{n_finite}{Count of finite similarities in the column.}
+#'   \item{n_at_best}{How many rows tie for best similarity.}
+#'   \item{n_near_best}{How many rows are within \code{near_tie_gap} of best.}
+#'   \item{z_best}{Column-wise z-score of best relative to finite background.}
+#'   \item{p_empirical_best}{Empirical upper-tail probability of best among
+#'     finite row similarities in that column.}
+#'   \item{global_row_sample}{Row assigned by global one-to-one assignment.}
+#'   \item{assignment_consistent}{Whether global assignment equals local best.}
+#'   \item{flag}{One of:
+#'     \code{"match_confident"},
+#'     \code{"match_ambiguous"},
+#'     \code{"mismatch_confident"},
+#'     \code{"mismatch_ambiguous"},
+#'     \code{"possible_mixture"},
+#'     \code{"no_call"},
+#'     \code{"unmapped"}.}
+#'   \item{swap_group_id}{ID of connected mismatch group (if any).}
+#'   \item{swap_group_type}{\code{"pair"}, \code{"cycle"}, or \code{"complex"}.}
 #' }
 #'
 #' @examples
 #' \dontrun{
-#' # Method 1: From similarity matrix
-#' sim_result <- genoprobs_compute_similarity(gp_a, gp_b)
-#' swaps <- genoprobs_detect_sample_swaps(sim_result$sim, sample_map)
+#' # Similarity matrix input
+#' sim_res <- genoprobs_compute_similarity(gp_a, gp_b, metric = "pearson")
+#' out <- genoprobs_detect_sample_swaps(
+#'   sim_res$sim,
+#'   sample_map = sample_map,
+#'   assignment_method = "hungarian"
+#' )
 #'
-#' # Method 2: From genoprob objects (convenience wrapper)
-#' swaps <- genoprobs_detect_sample_swaps(gp_a, gp_b, sample_map, metric = 'pearson')
+#' # calc_genoprob input (computes similarity first)
+#' out2 <- genoprobs_detect_sample_swaps(
+#'   gp_a,
+#'   genoprobs_2 = gp_b,
+#'   sample_map = sample_map,
+#'   metric = "cosine"
+#' )
 #' }
 #' @export
-genoprobs_detect_sample_swaps <- function(x, ...) {
-    UseMethod('genoprobs_detect_sample_swaps')
-}
-
-#' @rdname genoprobs_detect_sample_swaps
-#' @param x For \code{.matrix} method: similarity matrix with rows = one set of samples
-#'   (e.g. one platform/build), cols = the other set. Each cell x[i,j] = similarity
-#'   between row sample i and col sample j. Must have rownames and colnames.
-#' @param sample_map Optional data.frame with columns c("col_sample", "row_sample") giving
-#'   expected pairing: for each col sample, which row sample it is expected to match.
-#' @param min_delta_best_labeled Flag mismatch if best - labeled >= this (default 0.05)
-#' @param min_delta_best_second Require best - second >= this for "confident" (default 0.02)
-#' @export
-genoprobs_detect_sample_swaps.matrix <- function(x,
-                                                sample_map = NULL,
-                                                min_delta_best_labeled = 0.05,
-                                                min_delta_best_second  = 0.02,
-                                                ...) {
-  sim <- x
-
-  # =========================================================================
-  # STEP 1: Validate input and extract sample names
-  # =========================================================================
-  # The similarity matrix sim has:
-  #   - ROWS = one set of samples (row set)
-  #   - COLS = the other set (col set)
-  # Each cell sim[i,j] = similarity between row sample i and col sample j.
-  # We rely on rownames/colnames as the sample IDs.
-  #
-  # NOTE: This function assumes "larger = more similar". For Pearson/cosine,
-  # larger is better (1 is perfect match). If you ever pass a distance matrix,
-  # you must convert it (e.g., similarity = -distance) before using this.
-
-  if (!is.matrix(sim)) {
-    stop("x must be a matrix for the .matrix method.")
-  }
-  if (is.null(rownames(sim)) || is.null(colnames(sim))) {
-    stop("sim must have rownames (row samples) and colnames (col samples).")
-  }
-
-  row_samples <- rownames(sim)
-  col_samples <- colnames(sim)
-
-  # Guard against duplicated sample IDs. Duplicates make mapping & swap logic ambiguous.
-  if (anyDuplicated(row_samples)) stop("Row sample names (rownames(sim)) contain duplicates.")
-  if (anyDuplicated(col_samples)) stop("Col sample names (colnames(sim)) contain duplicates.")
-
-  # =========================================================================
-  # STEP 2: Build or validate sample_map (col -> row expected pairing)
-  # =========================================================================
-  # sample_map tells us: for each col sample, which row sample it is EXPECTED to match.
-  #
-  # If sample_map is NULL, we assume "same IDs should match", but still return output
-  # for all columns; columns without a same-named row become unmapped.
-
-  if (is.null(sample_map)) {
-    shared <- intersect(row_samples, col_samples)
-    sample_map <- data.frame(col_sample = shared,
-                             row_sample = shared,
-                             stringsAsFactors = FALSE)
-  } else {
-    nm <- names(sample_map)
-
-    # Only accept explicit col_sample/row_sample
-    if (!all(c("col_sample", "row_sample") %in% nm)) {
-      stop('sample_map must have columns "col_sample" and "row_sample".')
-    }
-    sample_map <- sample_map[, c("col_sample", "row_sample"), drop = FALSE]
-
-    # Sanity checks: duplicates usually indicate metadata problems.
-    if (anyDuplicated(sample_map$col_sample)) {
-      stop("sample_map has duplicated col_sample entries; mapping must be 1-to-1 by col_sample.")
-    }
-    # Duplicated row_sample may or may not be allowed; warn by default because swaps become ambiguous.
-    if (anyDuplicated(sample_map$row_sample)) {
-      warning("sample_map has duplicated row_sample values. Reciprocal swap detection may be ambiguous.")
-    }
-
-    # Keep only mappings present in the matrix
-    sample_map <- sample_map[sample_map$col_sample %in% col_samples &
-                               sample_map$row_sample %in% row_samples, , drop = FALSE]
-  }
-
-  # expected_row[col] = expected row sample name (or NA if unmapped)
-  expected_row <- setNames(sample_map$row_sample, sample_map$col_sample)
-  expected_row <- expected_row[col_samples]  # reorder to match matrix columns; introduces NA for unmapped
-
-  # =========================================================================
-  # STEP 3: For each col sample, find best and second-best row matches
-  # =========================================================================
-  # We do this in a vectorized way:
-  #   best_idx[j]   = which.max(sim[,j])  (ties broken by first)
-  #   second_idx[j] = best of remaining after masking out best
-  #
-  # IMPORTANT EDGE CASE:
-  # - If an entire column is NA (no similarities computable), best/second should be NA.
-
-  # Identify columns that contain at least one finite value
-  col_has_value <- vapply(seq_along(col_samples), function(j) any(is.finite(sim[, j])), logical(1))
-
-  best_idx <- rep(NA_integer_, length(col_samples))
-  best_r   <- rep(NA_real_,    length(col_samples))
-
-  # max.col(m) returns column index of max in each ROW; we need row index of max in each COLUMN.
-  # So use max.col(t(sim_sub)) to get, per column of sim_sub, which row has the max.
-  if (any(col_has_value)) {
-    sim_sub <- sim[, col_has_value, drop = FALSE]
-    best_idx[col_has_value] <- max.col(t(sim_sub), ties.method = "first")
-    best_r[col_has_value]   <- sim[cbind(best_idx[col_has_value], which(col_has_value))]
-  }
-
-  best_row_sample <- ifelse(is.na(best_idx), NA_character_, row_samples[best_idx])
-
-  # Second-best: mask out the best entry per column, then take max again.
-  second_idx <- rep(NA_integer_, length(col_samples))
-  second_r   <- rep(NA_real_,    length(col_samples))
-
-  if (any(col_has_value) && nrow(sim) >= 2) {
-    sim2 <- sim[, col_has_value, drop = FALSE]
-    # mask best entries (one per column)
-    j_good <- which(col_has_value)
-    sim2[cbind(best_idx[col_has_value], seq_along(j_good))] <- -Inf
-    # row index of max in each column: max.col(t(sim2))
-    second_idx[col_has_value] <- max.col(t(sim2), ties.method = "first")
-    # if original column had only one finite entry, second could be -Inf; treat as NA
-    tmp_second_r <- sim[cbind(second_idx[col_has_value], j_good)]
-    tmp_second_r[!is.finite(tmp_second_r)] <- NA_real_
-    second_r[col_has_value] <- tmp_second_r
-  }
-
-  second_row_sample <- ifelse(is.na(second_idx), NA_character_, row_samples[second_idx])
-
-  # Optional tie diagnostics (cheap + useful): how many rows share the best score?
-  # This helps interpret "ambiguous" cases.
-  n_at_best <- vapply(seq_along(col_samples), function(j) {
-    if (!col_has_value[j]) return(NA_integer_)
-    mx <- max(sim[, j], na.rm = TRUE)
-    sum(sim[, j] == mx, na.rm = TRUE)
-  }, integer(1))
-
-  # =========================================================================
-  # STEP 4: Similarity of each col sample to its LABELED (expected) row
-  # =========================================================================
-  labeled_r <- vapply(seq_along(col_samples), function(j) {
-    r <- expected_row[[j]]
-    if (is.na(r)) return(NA_real_)
-    sim[r, col_samples[j]]
-  }, numeric(1))
-
-  # =========================================================================
-  # STEP 5: Compute deltas used for flagging
-  # =========================================================================
-  # delta_best_second:
-  #   - Large means best is clearly better than runner-up (confident assignment)
-  #   - Small means ambiguous (best ~ second)
-  #
-  # delta_best_labeled:
-  #   - Large means best is much better than expected label -> possible swap/mislabel
-
-  delta_best_second  <- best_r - second_r
-  delta_best_labeled <- best_r - labeled_r
-
-  # =========================================================================
-  # STEP 6: Assign flags based on match quality and deltas
-  # =========================================================================
-  flag <- rep("match", length(col_samples))
-
-  # If no expected mapping -> unmapped
-  flag[is.na(expected_row)] <- "unmapped"
-
-  # If the column has no usable similarity values, we also call it unmapped-like.
-  # (You could choose a different label; "unmapped" is convenient and conservative.)
-  flag[!col_has_value] <- "unmapped"
-
-  # For mapped columns, apply mismatch/match ambiguity logic.
-  mapped <- !is.na(expected_row) & col_has_value
-
-  # Confident mismatch: best != expected AND best beats expected by enough AND best beats second by enough
-  flag[mapped &
-         (best_row_sample != expected_row) &
-         (delta_best_labeled >= min_delta_best_labeled) &
-         (delta_best_second  >= min_delta_best_second)] <- "mismatch_confident"
-
-  # Ambiguous mismatch: best != expected AND best beats expected by enough BUT does NOT clearly beat second
-  flag[mapped &
-         (best_row_sample != expected_row) &
-         (delta_best_labeled >= min_delta_best_labeled) &
-         (!is.na(delta_best_second) & delta_best_second < min_delta_best_second)] <- "mismatch_ambiguous"
-
-  # Ambiguous match: best == expected but second is close (or best is tied)
-  flag[mapped &
-         (best_row_sample == expected_row) &
-         (
-           (!is.na(delta_best_second) & delta_best_second < min_delta_best_second) |
-             (!is.na(n_at_best) & n_at_best > 1L)
-         )] <- "match_ambiguous"
-
-  # =========================================================================
-  # STEP 7: Build the output data.frame
-  # =========================================================================
-  out <- data.frame(
-    col_sample           = col_samples,
-    expected_row_sample  = unname(expected_row),
-    labeled_r            = labeled_r,
-    best_row_sample      = best_row_sample,
-    best_r               = best_r,
-    second_row_sample    = second_row_sample,
-    second_r             = second_r,
-    delta_best_second    = delta_best_second,
-    delta_best_labeled   = delta_best_labeled,
-    n_at_best            = n_at_best,   # NEW: helps interpret ambiguous/ties
-    flag                 = flag,
-    stringsAsFactors     = FALSE
-  )
-
-  # =========================================================================
-  # STEP 8: Identify reciprocal swap pairs (A↔B swapped)
-  # =========================================================================
-  # A reciprocal swap means:
-  #   - Col sample c1 best-matches row sample that is the expected row for c2
-  #   - Col sample c2 best-matches row sample that is the expected row for c1
-  #
-  # NOTE: This logic assumes the mapping is roughly 1-to-1. If multiple columns map to
-  # the same expected row, you can still get pairs but they may not be unique.
-
-  reciprocal <- rep(NA_character_, nrow(out))
-
-  idx_mis <- which(out$flag %in% c("mismatch_confident", "mismatch_ambiguous") &
-                     !is.na(out$expected_row_sample) &
-                     !is.na(out$best_row_sample))
-
-  best_row <- setNames(out$best_row_sample, out$col_sample)
-  exp_row  <- setNames(out$expected_row_sample, out$col_sample)
-
-  for (i in idx_mis) {
-    c1 <- out$col_sample[i]
-    candidates <- names(exp_row)[exp_row == best_row[[c1]]]
-
-    for (c2 in candidates) {
-      if (!is.na(best_row[[c2]]) && best_row[[c2]] == exp_row[[c1]]) {
-        rid <- paste0("swap:", paste(sort(c(c1, c2)), collapse = "<->"))
-        reciprocal[match(c1, out$col_sample)] <- rid
-        reciprocal[match(c2, out$col_sample)] <- rid
-      }
-    }
-  }
-
-  out$reciprocal_pair <- reciprocal
-  out
-}
-
-
-#' @rdname genoprobs_detect_sample_swaps
-#' @param x For \code{.calc_genoprob} method: first calc_genoprob object.
-#' @param genoprobs_2 Second calc_genoprob object (required when x is a calc_genoprob object).
-#' @param sample_map Optional data.frame with columns c("col_sample", "row_sample") giving
-#'   expected pairing: for each col sample, which row sample it is expected to match.
-#' @param metric Similarity metric to use when computing similarity matrix.
-#'   One of \code{'pearson'} or \code{'cosine'} (default \code{'pearson'}).
-#'   Only used when x is a calc_genoprob object.
-#' @param min_delta_best_labeled Flag mismatch if best - labeled >= this (default 0.05)
-#' @param min_delta_best_second Require best - second >= this for "confident" (default 0.02)
-#' @export
-genoprobs_detect_sample_swaps.calc_genoprob <- function(x,
-                                                         genoprobs_2,
-                                                         sample_map = NULL,
-                                                         metric = c('pearson', 'cosine'),
-                                                         min_delta_best_labeled = 0.05,
-                                                         min_delta_best_second  = 0.02,
-                                                         ...) {
-    genoprobs_1 <- x
+genoprobs_detect_sample_swaps <- function(
+    x,
+    genoprobs_2 = NULL,
+    sample_map = NULL,
+    metric = c("pearson", "cosine"),
+    assignment_method = c("greedy", "hungarian"),
+    min_delta_best_labeled = 0.05,
+    min_delta_best_second = 0.02,
+    min_finite_per_col = 25L,
+    min_z_best = 3,
+    max_empirical_p_best = 0.05,
+    near_tie_gap = 0.01,
+    allow_no_call = TRUE,
+    ...
+) {
     metric <- match.arg(metric)
+    assignment_method <- match.arg(assignment_method)
 
-    # Compute similarity matrix first
-    sim_result <- genoprobs_compute_similarity(genoprobs_1, genoprobs_2, metric = metric)
+    # -------------------------------------------------------------------------
+    # STEP 1: Build or validate the similarity matrix.
+    #
+    # WHY: downstream logic assumes a row-by-column matrix where larger means
+    # "more likely same sample". We normalize at the edge so internals can remain
+    # simple and explicit.
+    # -------------------------------------------------------------------------
+    sim <- NULL
 
-    # Then call the matrix method
-    genoprobs_detect_sample_swaps.matrix(
-        sim_result$sim,
-        sample_map = sample_map,
-        min_delta_best_labeled = min_delta_best_labeled,
-        min_delta_best_second = min_delta_best_second
+    if (is.matrix(x)) {
+        sim <- x
+    } else if (inherits(x, "calc_genoprob")) {
+        if (is.null(genoprobs_2)) {
+            stop("When x is calc_genoprob, genoprobs_2 is required.")
+        }
+        sim <- genoprobs_compute_similarity(x, genoprobs_2, metric = metric)$sim
+    } else {
+        stop(
+            "x must be either a similarity matrix or calc_genoprob.\n",
+            "Received class: ", paste(class(x), collapse = "/")
+        )
+    }
+
+    if (is.null(rownames(sim)) || is.null(colnames(sim))) {
+        stop("sim must have rownames and colnames as sample IDs.")
+    }
+    if (anyDuplicated(rownames(sim))) {
+        stop("rownames(sim) contain duplicates.")
+    }
+    if (anyDuplicated(colnames(sim))) {
+        stop("colnames(sim) contain duplicates.")
+    }
+
+    row_samples <- rownames(sim)
+    col_samples <- colnames(sim)
+    n_col <- ncol(sim)
+
+    # -------------------------------------------------------------------------
+    # STEP 2: Build expected pairing map (col -> row).
+    #
+    # WHY: mismatch detection only has meaning relative to an expected label.
+    # If no map is supplied, we default to same-name expectation where possible.
+    # -------------------------------------------------------------------------
+    if (is.null(sample_map)) {
+        shared <- intersect(col_samples, row_samples)
+        sample_map <- data.frame(
+            col_sample = shared,
+            row_sample = shared,
+            stringsAsFactors = FALSE
+        )
+    } else {
+        if (!all(c("col_sample", "row_sample") %in% names(sample_map))) {
+            stop('sample_map must contain columns "col_sample" and "row_sample".')
+        }
+        sample_map <- sample_map[, c("col_sample", "row_sample"), drop = FALSE]
+        if (anyDuplicated(sample_map$col_sample)) {
+            stop("sample_map has duplicated col_sample entries.")
+        }
+        if (anyDuplicated(sample_map$row_sample)) {
+            warning(
+                "sample_map has duplicated row_sample values. ",
+                "One-to-one assignment and group labeling may be less interpretable."
+            )
+        }
+        sample_map <- sample_map[
+            sample_map$col_sample %in% col_samples &
+                sample_map$row_sample %in% row_samples,
+            ,
+            drop = FALSE
+        ]
+    }
+
+    expected_row <- setNames(sample_map$row_sample, sample_map$col_sample)[col_samples]
+
+    # -------------------------------------------------------------------------
+    # STEP 3: Per-column local evidence.
+    #
+    # WHY: this preserves interpretability and backwards-compatibility with the
+    # common "best/second/labeled" identity-QC pattern.
+    # -------------------------------------------------------------------------
+    n_finite <- colSums(is.finite(sim))
+    col_has_value <- n_finite > 0L
+    evaluable <- col_has_value & (n_finite >= as.integer(min_finite_per_col))
+
+    best_idx <- rep(NA_integer_, n_col)
+    best_r <- rep(NA_real_, n_col)
+    second_idx <- rep(NA_integer_, n_col)
+    second_r <- rep(NA_real_, n_col)
+    n_at_best <- rep(NA_integer_, n_col)
+    n_near_best <- rep(NA_integer_, n_col)
+    z_best <- rep(NA_real_, n_col)
+    p_empirical_best <- rep(NA_real_, n_col)
+
+    for (j in seq_len(n_col)) {
+        colv <- sim[, j]
+        finite <- is.finite(colv)
+        if (!any(finite)) next
+
+        # Best local row for this column.
+        finite_idx <- which(finite)
+        local_vals <- colv[finite_idx]
+        k_best <- which.max(local_vals)
+        i_best <- finite_idx[k_best]
+        best_idx[j] <- i_best
+        best_r[j] <- colv[i_best]
+
+        # Second best among finite values.
+        if (length(finite_idx) >= 2L) {
+            local_vals2 <- local_vals
+            local_vals2[k_best] <- -Inf
+            k_second <- which.max(local_vals2)
+            i_second <- finite_idx[k_second]
+            if (is.finite(colv[i_second])) {
+                second_idx[j] <- i_second
+                second_r[j] <- colv[i_second]
+            }
+        }
+
+        # Tie/near-tie diagnostics help explain ambiguity.
+        mx <- max(local_vals)
+        n_at_best[j] <- sum(local_vals == mx)
+        n_near_best[j] <- sum((mx - local_vals) <= near_tie_gap)
+
+        # Empirical calibration: how exceptional is the best score within this column?
+        #
+        # WHY: fixed deltas alone can be brittle when score scales vary by sample,
+        # platform, or depth. A local background gives a robust "is this standout?"
+        # signal without imposing a strict parametric model.
+        mu <- mean(local_vals)
+        sdv <- stats::sd(local_vals)
+        if (is.finite(sdv) && sdv > 0) {
+            z_best[j] <- (mx - mu) / sdv
+        }
+        p_empirical_best[j] <- (sum(local_vals >= mx) + 1) / (length(local_vals) + 1)
+    }
+
+    best_row_sample <- ifelse(is.na(best_idx), NA_character_, row_samples[best_idx])
+    second_row_sample <- ifelse(is.na(second_idx), NA_character_, row_samples[second_idx])
+
+    labeled_r <- vapply(seq_along(col_samples), function(j) {
+        r <- expected_row[[j]]
+        if (is.na(r)) return(NA_real_)
+        sim[r, col_samples[j]]
+    }, numeric(1))
+
+    delta_best_second <- best_r - second_r
+    delta_best_labeled <- best_r - labeled_r
+
+    # -------------------------------------------------------------------------
+    # STEP 4: Global one-to-one assignment (optional but recommended).
+    #
+    # WHY: local maxima are easy to interpret but can create many-to-one mappings.
+    # A one-to-one assignment helps expose plate shifts/cycles and reduces local
+    # greediness artifacts.
+    # -------------------------------------------------------------------------
+    global_row_for_col <- .swapmax_assign_rows(
+        sim = sim,
+        method = assignment_method
     )
+    global_row_sample <- ifelse(
+        is.na(global_row_for_col),
+        NA_character_,
+        row_samples[global_row_for_col]
+    )
+    assignment_consistent <- (global_row_sample == best_row_sample)
+    assignment_consistent[is.na(global_row_sample) | is.na(best_row_sample)] <- NA
+
+    # -------------------------------------------------------------------------
+    # STEP 5: Confidence-aware flagging.
+    #
+    # WHY: explicit uncertainty categories are safer than binary forced calls.
+    # -------------------------------------------------------------------------
+    flag <- rep("match_ambiguous", n_col)
+
+    # Missing mapping stays distinct from low-information no-call.
+    flag[is.na(expected_row)] <- "unmapped"
+
+    if (allow_no_call) {
+        flag[!evaluable] <- "no_call"
+    } else {
+        flag[!evaluable] <- "unmapped"
+    }
+
+    mapped_eval <- !is.na(expected_row) & evaluable
+
+    confident <- mapped_eval &
+        !is.na(delta_best_second) &
+        !is.na(z_best) &
+        !is.na(p_empirical_best) &
+        (delta_best_second >= min_delta_best_second) &
+        (z_best >= min_z_best) &
+        (p_empirical_best <= max_empirical_p_best)
+
+    is_match <- mapped_eval & (best_row_sample == expected_row)
+    is_mismatch <- mapped_eval & (best_row_sample != expected_row)
+
+    flag[is_match & confident] <- "match_confident"
+    flag[is_match & !confident] <- "match_ambiguous"
+
+    strong_disagreement <- is_mismatch &
+        !is.na(delta_best_labeled) &
+        (delta_best_labeled >= min_delta_best_labeled)
+
+    flag[strong_disagreement & confident] <- "mismatch_confident"
+    flag[strong_disagreement & !confident] <- "mismatch_ambiguous"
+
+    # Mixture heuristic:
+    # multiple near-best candidates + weak confidence + mismatch-like behavior.
+    possible_mixture <- is_mismatch &
+        (n_near_best >= 3L) &
+        (
+            is.na(delta_best_second) |
+                delta_best_second < min_delta_best_second |
+                is.na(z_best) |
+                z_best < min_z_best
+        )
+    flag[possible_mixture] <- "possible_mixture"
+
+    # -------------------------------------------------------------------------
+    # STEP 6: Group labeling for mismatches.
+    #
+    # WHY: identity failures are often not isolated pairs; they can be shifts or
+    # cycle-like permutations. Group IDs help users inspect these patterns.
+    # -------------------------------------------------------------------------
+    grp <- .swapmax_label_groups(
+        col_samples = col_samples,
+        expected_row = unname(expected_row),
+        assigned_row = global_row_sample,
+        mismatch_mask = flag %in% c("mismatch_confident", "mismatch_ambiguous", "possible_mixture")
+    )
+
+    out <- data.frame(
+        col_sample = col_samples,
+        expected_row_sample = unname(expected_row),
+        labeled_r = labeled_r,
+        best_row_sample = best_row_sample,
+        best_r = best_r,
+        second_row_sample = second_row_sample,
+        second_r = second_r,
+        delta_best_second = delta_best_second,
+        delta_best_labeled = delta_best_labeled,
+        n_finite = n_finite,
+        n_at_best = n_at_best,
+        n_near_best = n_near_best,
+        z_best = z_best,
+        p_empirical_best = p_empirical_best,
+        global_row_sample = global_row_sample,
+        assignment_consistent = assignment_consistent,
+        flag = flag,
+        swap_group_id = grp$id,
+        swap_group_type = grp$type,
+        stringsAsFactors = FALSE
+    )
+
+    out
 }
 
-#' @rdname genoprobs_detect_sample_swaps
-#' @export
-genoprobs_detect_sample_swaps.default <- function(x, ...) {
-    stop(
-        "genoprobs_detect_sample_swaps() does not support objects of class '",
-        paste(class(x), collapse = "/"), "'.\n",
-        "Expected either a similarity matrix or a calc_genoprob object.\n",
-        "For calc_genoprob objects, also provide genoprobs_2 argument."
-    )
+
+#' Greedy/Hungarian row assignment for columns
+#'
+#' Internal helper for \code{genoprobs_detect_sample_swaps()}.
+#' Returns integer vector of row indices for each column (or \code{NA}).
+#'
+#' @keywords internal
+.swapmax_assign_rows <- function(sim, method = c("greedy", "hungarian")) {
+    method <- match.arg(method)
+    nr <- nrow(sim)
+    nc <- ncol(sim)
+    out <- rep(NA_integer_, nc)
+
+    if (method == "hungarian" && !requireNamespace("clue", quietly = TRUE)) {
+        warning("assignment_method='hungarian' requested but package 'clue' is unavailable; using greedy.")
+        method <- "greedy"
+    }
+
+    if (method == "greedy") {
+        # WHY greedy fallback: always available, no external dependency.
+        # We rank all finite pairs by similarity and keep the best non-conflicting
+        # row/column matches.
+        idx <- which(is.finite(sim), arr.ind = TRUE)
+        if (!nrow(idx)) return(out)
+        vals <- sim[idx]
+        ord <- order(vals, decreasing = TRUE)
+        row_used <- rep(FALSE, nr)
+        col_used <- rep(FALSE, nc)
+
+        for (k in ord) {
+            i <- idx[k, 1]
+            j <- idx[k, 2]
+            if (!row_used[i] && !col_used[j]) {
+                out[j] <- i
+                row_used[i] <- TRUE
+                col_used[j] <- TRUE
+            }
+        }
+        return(out)
+    }
+
+    # Hungarian assignment (requires clue). We maximize similarity.
+    #
+    # `clue::solve_LSAP` solves a square problem. For rectangular matrices we pad
+    # with very poor dummy scores; this permits unmatched assignments when needed.
+    fin <- is.finite(sim)
+    if (!any(fin)) return(out)
+
+    finite_vals <- sim[fin]
+    floor_val <- min(finite_vals) - (abs(min(finite_vals)) + 1)
+    m <- sim
+    m[!fin] <- floor_val
+
+    n <- max(nr, nc)
+    sq <- matrix(floor_val, nrow = n, ncol = n)
+    sq[seq_len(nr), seq_len(nc)] <- m
+
+    # solve_LSAP returns selected columns for each row.
+    assign_col_for_row <- clue::solve_LSAP(sq, maximum = TRUE)
+    assign_col_for_row <- as.integer(assign_col_for_row)
+
+    # Invert row->col to col->row for real columns/rows only.
+    for (i in seq_len(nr)) {
+        j <- assign_col_for_row[i]
+        if (j <= nc) out[j] <- i
+    }
+
+    # Drop assignments that correspond to non-finite original entries.
+    assigned_cols <- which(!is.na(out))
+    if (length(assigned_cols)) {
+        assigned_rows <- out[assigned_cols]
+        bad_assigned <- !is.finite(sim[cbind(assigned_rows, assigned_cols)])
+        if (any(bad_assigned)) {
+            out[assigned_cols[bad_assigned]] <- NA_integer_
+        }
+    }
+    out
+}
+
+
+#' Label mismatch groups and broad topology type
+#'
+#' Internal helper for \code{genoprobs_detect_sample_swaps()}.
+#'
+#' @keywords internal
+.swapmax_label_groups <- function(col_samples, expected_row, assigned_row, mismatch_mask) {
+    n <- length(col_samples)
+    id <- rep(NA_character_, n)
+    type <- rep(NA_character_, n)
+
+    # Map expected row -> column sample. If duplicated expectations exist, choose
+    # first; this remains informative but less strictly interpretable.
+    col_for_row <- setNames(col_samples, expected_row)
+
+    # Directed edge: c1 -> c2 means c1 was assigned to row expected for c2.
+    to <- rep(NA_integer_, n)
+    for (i in which(mismatch_mask & !is.na(assigned_row))) {
+        nxt <- col_for_row[[assigned_row[i]]]
+        if (!is.null(nxt) && !is.na(nxt)) {
+            j <- match(nxt, col_samples)
+            if (!is.na(j) && j != i) to[i] <- j
+        }
+    }
+
+    # Undirected adjacency for connected groups.
+    adj <- vector("list", n)
+    for (i in seq_len(n)) {
+        if (!is.na(to[i])) {
+            adj[[i]] <- unique(c(adj[[i]], to[i]))
+            adj[[to[i]]] <- unique(c(adj[[to[i]]], i))
+        }
+    }
+
+    seen <- rep(FALSE, n)
+    comp_idx <- 0L
+    candidates <- which(mismatch_mask & !is.na(to))
+    for (start in candidates) {
+        if (seen[start]) next
+        comp_idx <- comp_idx + 1L
+        q <- start
+        members <- integer(0)
+        seen[start] <- TRUE
+
+        while (length(q)) {
+            v <- q[1]
+            q <- q[-1]
+            members <- c(members, v)
+            nbr <- adj[[v]]
+            if (!length(nbr)) next
+            for (u in nbr) {
+                if (!seen[u]) {
+                    seen[u] <- TRUE
+                    q <- c(q, u)
+                }
+            }
+        }
+
+        members <- sort(unique(members))
+        outdeg <- vapply(members, function(v) as.integer(!is.na(to[v])), integer(1))
+        indeg <- vapply(members, function(v) sum(to[members] == v, na.rm = TRUE), integer(1))
+        is_cycle <- all(outdeg == 1L) && all(indeg == 1L) && length(members) >= 3L
+        is_pair <- length(members) == 2L && all(outdeg == 1L) && all(indeg == 1L)
+
+        comp_type <- if (is_pair) {
+            "pair"
+        } else if (is_cycle) {
+            "cycle"
+        } else {
+            "complex"
+        }
+
+        group_id <- paste0("group:", comp_idx)
+        id[members] <- group_id
+        type[members] <- comp_type
+    }
+
+    list(id = id, type = type)
 }

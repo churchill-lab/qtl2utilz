@@ -17,15 +17,39 @@
 #'
 #' @return 3D array with same samples and founders as \code{pr1}, third
 #'   dimension = length(mkr2) with \code{dimnames[[3]] = names(mkr2)}.
-interpolate_chromosome = function(pr1, mkr1, mkr2) {
-    stopifnot(identical(dimnames(pr1)[[3]], names(mkr1)))
-    stopifnot(min(mkr1) > 200)
-    stopifnot(min(mkr2) > 200)
+interpolate_chromosome <- function(pr1, mkr1, mkr2) {
+    if(length(dim(pr1)) != 3) {
+        stop('pr1 must be a 3D array: samples x founders x markers.')
+    }
+    if(is.null(dimnames(pr1)) || is.null(dimnames(pr1)[[3]])) {
+        stop('pr1 must have marker names in dimnames(pr1)[[3]].')
+    }
+    if(!is.numeric(mkr1) || !is.numeric(mkr2)) {
+        stop('mkr1 and mkr2 must be numeric position vectors.')
+    }
+    if(length(mkr1) == 0 || length(mkr2) == 0) {
+        stop('mkr1 and mkr2 must be non-empty.')
+    }
+    if(is.null(names(mkr1)) || is.null(names(mkr2))) {
+        stop('mkr1 and mkr2 must be named vectors (marker IDs as names).')
+    }
+    if(any(!is.finite(mkr1)) || any(!is.finite(mkr2))) {
+        stop('mkr1 and mkr2 must contain only finite positions.')
+    }
+    if(!identical(dimnames(pr1)[[3]], names(mkr1))) {
+        stop('dimnames(pr1)[[3]] must match names(mkr1) in the same order.')
+    }
 
     # integer positions for findInterval (bp; truncation is fine)
     x1 <- as.integer(as.numeric(mkr1))
     x2 <- as.integer(as.numeric(mkr2))
     n1 <- length(x1)
+    if(is.unsorted(x1, strictly = FALSE)) {
+        stop('mkr1 positions must be sorted in non-decreasing order.')
+    }
+    if(is.unsorted(x2, strictly = FALSE)) {
+        stop('mkr2 positions must be sorted in non-decreasing order.')
+    }
 
     # for each target position x2, get index of nearest source marker to the
     # left (proximal) and to the right (distal) for linear interpolation.
@@ -83,7 +107,7 @@ interpolate_chromosome = function(pr1, mkr1, mkr2) {
 #'   \code{markers2} for each chromosome.
 #'
 #' @export
-genoprobs_interpolate = function(probs1, markers1, markers2) {
+genoprobs_interpolate <- function(probs1, markers1, markers2) {
     # probs1 and markers1 must be the same length
     if(length(probs1) != length(markers1)) {
         stop('probs1 and markers1 must be the same length.')
@@ -98,10 +122,10 @@ genoprobs_interpolate = function(probs1, markers1, markers2) {
     # if positions look like Mb (max < 200), convert to bp; interpolate_chromosome
     # expects bp. Chr 1 is < 200 Mb so this heuristic is safe for mouse.
     if(max(unlist(markers1)) < 200) {
-        markers1 = lapply(markers1, '*', 1e6)
+        markers1 <- lapply(markers1, '*', 1e6)
     }
     if(max(unlist(markers2)) < 200) {
-        markers2 = lapply(markers2, '*', 1e6)
+        markers2 <- lapply(markers2, '*', 1e6)
     }
 
     new_probs1        <- vector('list', length(probs1))
@@ -109,17 +133,17 @@ genoprobs_interpolate = function(probs1, markers1, markers2) {
 
     # interpolate each chromosome from markers1 positions to markers2 positions
     for(chr in all_chr) {
-        new_probs1[[chr]] = interpolate_chromosome(pr1  = probs1[[chr]],
-                                                   mkr1 = markers1[[chr]],
-                                                   mkr2 = markers2[[chr]])
+        new_probs1[[chr]] <- interpolate_chromosome(pr1  = probs1[[chr]],
+                                                    mkr1 = markers1[[chr]],
+                                                    mkr2 = markers2[[chr]])
     }
 
     # preserve qtl2 attributes and class so result is a valid genoprobs object
-    attr(new_probs1, 'crosstype')    = attr(probs1, 'crosstype')
-    attr(new_probs1, 'is_x_chr')     = attr(probs1, 'is_x_chr')
-    attr(new_probs1, 'alleles')      = attr(probs1, 'alleles')
-    attr(new_probs1, 'alleleprobs')  = attr(probs1, 'alleleprobs')
-    class(new_probs1)                = class(probs1)
+    attr(new_probs1, 'crosstype')    <- attr(probs1, 'crosstype')
+    attr(new_probs1, 'is_x_chr')     <- attr(probs1, 'is_x_chr')
+    attr(new_probs1, 'alleles')      <- attr(probs1, 'alleles')
+    attr(new_probs1, 'alleleprobs')  <- attr(probs1, 'alleleprobs')
+    class(new_probs1)                <- class(probs1)
 
     new_probs1
 }
