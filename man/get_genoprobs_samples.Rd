@@ -6,6 +6,15 @@
 \usage{
 get_genoprobs_samples(gp, chr = NULL)
 }
+\arguments{
+\item{gp}{A \code{calc_genoprob} object (named list of 3D arrays).}
+
+\item{chr}{Chromosome name to read from; if \code{NULL}, uses the first
+chromosome in \code{gp}.}
+}
+\value{
+Character vector of sample IDs (rownames of \code{gp[[chr]]}).
+}
 \description{
 Extract sample names from a calc_genoprob object
 }

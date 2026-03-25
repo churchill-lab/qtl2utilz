@@ -14,6 +14,8 @@
 #'     the file basename.}
 #'   \item{full_path}{Character; full path to each file.}
 #'   \item{file_name}{Character; basename of each file.}
+#'
+#' @keywords internal
 gbrs_get_files_tbl <- function(directory, file_pattern) {
     # Recursively find all matching files under `directory`.
     file_list <- list.files(
@@ -29,7 +31,7 @@ gbrs_get_files_tbl <- function(directory, file_pattern) {
     # This assumes the sample ID is the leading part of the file name.
     files_tbl <- tibble::tibble(
         sample_id = basename(file_list) |>
-            stringr::str_replace(file_pattern, ''),
+            stringr::str_replace(file_pattern, ""),
         full_path = file_list,
         file_name = basename(file_list)
     )
@@ -60,8 +62,8 @@ gbrs_get_files_tbl <- function(directory, file_pattern) {
 #' @export
 gbrs_find_files <- function(
         directory,
-        genoprobs_file_pattern = '\\.gbrs\\.interpolated\\.genoprobs\\.tsv$',
-        counts_file_pattern = '\\.diploid\\.genes\\.expected_read_counts$'
+        genoprobs_file_pattern = "\\.gbrs\\.interpolated\\.genoprobs\\.tsv$",
+        counts_file_pattern = "\\.diploid\\.genes\\.expected_read_counts$"
 ) {
     # Get all genoprobs files.
     genoprobs_files_tbl <- gbrs_get_files_tbl(directory, genoprobs_file_pattern)
@@ -76,8 +78,8 @@ gbrs_find_files <- function(
     )
     if (length(missing_counts_samples) != 0) {
         message(
-            'The following sample identifiers have a genoprobs file, but no ',
-            'counts file: ', paste(missing_counts_samples, collapse = ', ')
+            "The following sample identifiers have a genoprobs file, but no ",
+            "counts file: ", paste(missing_counts_samples, collapse = ", ")
         )
     }
 
@@ -87,22 +89,22 @@ gbrs_find_files <- function(
     )
     if (length(missing_genoprobs_samples) != 0) {
         message(
-            'The following sample identifiers have a counts file, but no ',
-            'genoprobs file: ', paste(missing_genoprobs_samples, collapse = ', ')
+            "The following sample identifiers have a counts file, but no ",
+            "genoprobs file: ", paste(missing_genoprobs_samples, collapse = ", ")
         )
     }
 
     if (nrow(genoprobs_files_tbl) == 0 || nrow(counts_files_tbl) == 0) {
         stop(
-            'No matching GBRS files found. ',
-            'Found ', nrow(genoprobs_files_tbl), ' genoprobs files and ',
-            nrow(counts_files_tbl), ' counts files. ',
-            'Please verify directory and filename patterns.'
+            "No matching GBRS files found. ",
+            "Found ", nrow(genoprobs_files_tbl), " genoprobs files and ",
+            nrow(counts_files_tbl), " counts files. ",
+            "Please verify directory and filename patterns."
         )
     }
 
     if (length(missing_counts_samples) + length(missing_genoprobs_samples) != 0) {
-        stop('Please validate the input directory')
+        stop("Please validate the input directory")
     }
 
     # Join the two file tables once the sample sets match.
@@ -110,8 +112,8 @@ gbrs_find_files <- function(
         genoprobs_files_tbl |>
         dplyr::inner_join(
             counts_files_tbl,
-            suffix = c('_genoprobs', '_counts'),
-            by = c('sample_id' = 'sample_id')
+            suffix = c("_genoprobs", "_counts"),
+            by = c("sample_id" = "sample_id")
         )
 
     files_tbl

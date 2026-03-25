@@ -38,7 +38,7 @@ genoprobs_detect_duplicates <- function(
     genoprobs,
     exclude_chr = NULL,
     threshold = 0.9,
-    metric = c('pearson', 'cosine')
+    metric = c("pearson", "cosine")
 ) {
     metric <- match.arg(metric)
 
@@ -47,14 +47,14 @@ genoprobs_detect_duplicates <- function(
     if (!is.null(exclude_chr)) {
         keep <- setdiff(names(gp), exclude_chr)
         if (length(keep) == 0) {
-            stop('All chromosomes excluded; nothing left to compare.')
+            stop("All chromosomes excluded; nothing left to compare.")
         }
         gp <- gp[keep]
         class(gp) <- class(genoprobs)
-        attr(gp, 'is_x_chr') <- attr(genoprobs, 'is_x_chr')[keep]
-        attr(gp, 'crosstype') <- attr(genoprobs, 'crosstype')
-        attr(gp, 'alleles') <- attr(genoprobs, 'alleles')
-        attr(gp, 'alleleprobs') <- attr(genoprobs, 'alleleprobs')
+        attr(gp, "is_x_chr") <- attr(genoprobs, "is_x_chr")[keep]
+        attr(gp, "crosstype") <- attr(genoprobs, "crosstype")
+        attr(gp, "alleles") <- attr(genoprobs, "alleles")
+        attr(gp, "alleleprobs") <- attr(genoprobs, "alleleprobs")
     }
 
     sim_result <- genoprobs_compute_similarity(gp, gp, metric = metric)

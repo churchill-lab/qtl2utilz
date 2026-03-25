@@ -144,8 +144,8 @@ genoprobs_detect_sample_swaps <- function(
     x,
     genoprobs_2 = NULL,
     sample_map = NULL,
-    metric = c('pearson', 'cosine'),
-    assignment_method = c('greedy', 'hungarian'),
+    metric = c("pearson", "cosine"),
+    assignment_method = c("greedy", "hungarian"),
     min_delta_best_labeled = 0.05,
     min_delta_best_second = 0.02,
     min_finite_per_col = 25L,
@@ -169,26 +169,26 @@ genoprobs_detect_sample_swaps <- function(
 
     if (is.matrix(x)) {
         sim <- x
-    } else if (inherits(x, 'calc_genoprob')) {
+    } else if (inherits(x, "calc_genoprob")) {
         if (is.null(genoprobs_2)) {
-            stop('When x is calc_genoprob, genoprobs_2 is required.')
+            stop("When x is calc_genoprob, genoprobs_2 is required.")
         }
         sim <- genoprobs_compute_similarity(x, genoprobs_2, metric = metric)$sim
     } else {
         stop(
-            'x must be either a similarity matrix or calc_genoprob.\n',
-            'Received class: ', paste(class(x), collapse = '/')
+            "x must be either a similarity matrix or calc_genoprob.\n",
+            "Received class: ", paste(class(x), collapse = "/")
         )
     }
 
     if (is.null(rownames(sim)) || is.null(colnames(sim))) {
-        stop('sim must have rownames and colnames as sample IDs.')
+        stop("sim must have rownames and colnames as sample IDs.")
     }
     if (anyDuplicated(rownames(sim))) {
-        stop('rownames(sim) contain duplicates.')
+        stop("rownames(sim) contain duplicates.")
     }
     if (anyDuplicated(colnames(sim))) {
-        stop('colnames(sim) contain duplicates.')
+        stop("colnames(sim) contain duplicates.")
     }
 
     row_samples <- rownames(sim)
@@ -209,17 +209,17 @@ genoprobs_detect_sample_swaps <- function(
             stringsAsFactors = FALSE
         )
     } else {
-        if (!all(c('col_sample', 'row_sample') %in% names(sample_map))) {
-            stop('sample_map must contain columns \'col_sample\' and \'row_sample\'.')
+        if (!all(c("col_sample", "row_sample") %in% names(sample_map))) {
+            stop("sample_map must contain columns 'col_sample' and 'row_sample'.")
         }
-        sample_map <- sample_map[, c('col_sample', 'row_sample'), drop = FALSE]
+        sample_map <- sample_map[, c("col_sample", "row_sample"), drop = FALSE]
         if (anyDuplicated(sample_map$col_sample)) {
-            stop('sample_map has duplicated col_sample entries.')
+            stop("sample_map has duplicated col_sample entries.")
         }
         if (anyDuplicated(sample_map$row_sample)) {
             warning(
-                'sample_map has duplicated row_sample values. ',
-                'One-to-one assignment and group labeling may be less interpretable.'
+                "sample_map has duplicated row_sample values. ",
+                "One-to-one assignment and group labeling may be less interpretable."
             )
         }
         sample_map <- sample_map[
@@ -332,15 +332,15 @@ genoprobs_detect_sample_swaps <- function(
     #
     # WHY: explicit uncertainty categories are safer than binary forced calls.
     # -------------------------------------------------------------------------
-    flag <- rep('match_ambiguous', n_col)
+    flag <- rep("match_ambiguous", n_col)
 
     # Missing mapping stays distinct from low-information no-call.
-    flag[is.na(expected_row)] <- 'unmapped'
+    flag[is.na(expected_row)] <- "unmapped"
 
     if (allow_no_call) {
-        flag[!evaluable] <- 'no_call'
+        flag[!evaluable] <- "no_call"
     } else {
-        flag[!evaluable] <- 'unmapped'
+        flag[!evaluable] <- "unmapped"
     }
 
     mapped_eval <- !is.na(expected_row) & evaluable
@@ -356,15 +356,15 @@ genoprobs_detect_sample_swaps <- function(
     is_match <- mapped_eval & (best_row_sample == expected_row)
     is_mismatch <- mapped_eval & (best_row_sample != expected_row)
 
-    flag[is_match & confident] <- 'match_confident'
-    flag[is_match & !confident] <- 'match_ambiguous'
+    flag[is_match & confident] <- "match_confident"
+    flag[is_match & !confident] <- "match_ambiguous"
 
     strong_disagreement <- is_mismatch &
         !is.na(delta_best_labeled) &
         (delta_best_labeled >= min_delta_best_labeled)
 
-    flag[strong_disagreement & confident] <- 'mismatch_confident'
-    flag[strong_disagreement & !confident] <- 'mismatch_ambiguous'
+    flag[strong_disagreement & confident] <- "mismatch_confident"
+    flag[strong_disagreement & !confident] <- "mismatch_ambiguous"
 
     # Mixture heuristic:
     # multiple near-best candidates + weak confidence + mismatch-like behavior.
@@ -376,7 +376,7 @@ genoprobs_detect_sample_swaps <- function(
                 is.na(z_best) |
                 z_best < min_z_best
         )
-    flag[possible_mixture] <- 'possible_mixture'
+    flag[possible_mixture] <- "possible_mixture"
 
     # -------------------------------------------------------------------------
     # STEP 6: Group labeling for mismatches.
@@ -388,7 +388,7 @@ genoprobs_detect_sample_swaps <- function(
         col_samples = col_samples,
         expected_row = unname(expected_row),
         assigned_row = global_row_sample,
-        mismatch_mask = flag %in% c('mismatch_confident', 'mismatch_ambiguous', 'possible_mixture')
+        mismatch_mask = flag %in% c("mismatch_confident", "mismatch_ambiguous", "possible_mixture")
     )
 
     out <- data.frame(
@@ -421,21 +421,28 @@ genoprobs_detect_sample_swaps <- function(
 #' Greedy/Hungarian row assignment for columns
 #'
 #' Internal helper for \code{genoprobs_detect_sample_swaps()}.
-#' Returns integer vector of row indices for each column (or \code{NA}).
+#'
+#' @param sim Numeric matrix (rows = reference, columns = query); larger values
+#'   mean more similar.
+#' @param method \code{'greedy'} (always available) or \code{'hungarian'}
+#'   (requires suggested package \pkg{clue}).
+#'
+#' @return Integer vector of length \code{ncol(sim)}: chosen row index for each
+#'   column, or \code{NA} where unassigned.
 #'
 #' @keywords internal
-.swapmax_assign_rows <- function(sim, method = c('greedy', 'hungarian')) {
+.swapmax_assign_rows <- function(sim, method = c("greedy", "hungarian")) {
     method <- match.arg(method)
     nr <- nrow(sim)
     nc <- ncol(sim)
     out <- rep(NA_integer_, nc)
 
-    if (method == 'hungarian' && !requireNamespace('clue', quietly = TRUE)) {
-        warning('assignment_method=\'hungarian\' requested but package \'clue\' is unavailable; using greedy.')
-        method <- 'greedy'
+    if (method == "hungarian" && !requireNamespace("clue", quietly = TRUE)) {
+        warning("assignment_method='hungarian' requested but package 'clue' is unavailable; using greedy.")
+        method <- "greedy"
     }
 
-    if (method == 'greedy') {
+    if (method == "greedy") {
         # WHY greedy fallback: always available, no external dependency.
         # We rank all finite pairs by similarity and keep the best non-conflicting
         # row/column matches.
@@ -505,6 +512,14 @@ genoprobs_detect_sample_swaps <- function(
 #'
 #' Internal helper for \code{genoprobs_detect_sample_swaps()}.
 #'
+#' @param col_samples Character vector of query (column) sample IDs.
+#' @param expected_row Character vector giving the expected reference row for each column.
+#' @param assigned_row Character vector of globally assigned reference row per column.
+#' @param mismatch_mask Logical vector; \code{TRUE} where the column is a mismatch.
+#'
+#' @return A list with components \code{id} (character vector of group IDs)
+#'   and \code{type} (character: \code{'pair'}, \code{'cycle'}, or \code{'complex'}).
+#'
 #' @keywords internal
 .swapmax_label_groups <- function(col_samples, expected_row, assigned_row, mismatch_mask) {
     n <- length(col_samples)
@@ -526,7 +541,7 @@ genoprobs_detect_sample_swaps <- function(
     }
 
     # Undirected adjacency for connected groups.
-    adj <- vector('list', n)
+    adj <- vector("list", n)
     for (i in seq_len(n)) {
         if (!is.na(to[i])) {
             adj[[i]] <- unique(c(adj[[i]], to[i]))
@@ -565,14 +580,14 @@ genoprobs_detect_sample_swaps <- function(
         is_pair <- length(members) == 2L && all(outdeg == 1L) && all(indeg == 1L)
 
         comp_type <- if (is_pair) {
-            'pair'
+            "pair"
         } else if (is_cycle) {
-            'cycle'
+            "cycle"
         } else {
-            'complex'
+            "complex"
         }
 
-        group_id <- paste0('group:', comp_idx)
+        group_id <- paste0("group:", comp_idx)
         id[members] <- group_id
         type[members] <- comp_type
     }

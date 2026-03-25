@@ -14,7 +14,7 @@
 #'
 #' @export
 positions_to_bp <- function(x, ...) {
-    UseMethod('positions_to_bp')
+    UseMethod("positions_to_bp")
 }
 
 #' @rdname positions_to_bp
@@ -23,15 +23,15 @@ positions_to_bp <- function(x, ...) {
 positions_to_bp.default <- function(x, ...) {
     # only numeric and data.frame have methods; anything else is unsupported
     stop(
-        'Unsupported type for positions_to_bp(): ',
-        paste(class(x), collapse = '/')
+        "Unsupported type for positions_to_bp(): ",
+        paste(class(x), collapse = "/")
     )
 }
 
 #' @rdname positions_to_bp
 #' @export
 positions_to_bp.numeric <- function(x,
-                                    unit = c('auto', 'Mb', 'bp'),
+                                    unit = c("auto", "Mb", "bp"),
                                     ...) {
     unit <- match.arg(unit)
     # delegate to single source of truth for vector conversion
@@ -43,13 +43,13 @@ positions_to_bp.numeric <- function(x,
 #'   data frame method).
 #' @export
 positions_to_bp.data.frame <- function(x,
-                                       pos_col = 'pos',
-                                       unit = c('auto', 'Mb', 'bp'),
+                                       pos_col = "pos",
+                                       unit = c("auto", "Mb", "bp"),
                                        ...) {
     unit <- match.arg(unit)
 
     if(!pos_col %in% names(x)) {
-        stop('Column not found: ', pos_col)
+        stop("Column not found: ", pos_col)
     }
 
     # convert position column in place; leave other columns unchanged

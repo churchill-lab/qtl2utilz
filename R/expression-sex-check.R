@@ -29,30 +29,30 @@
 #' @export
 expression_sex_check <- function(
         counts,
-        xist_id = 'ENSMUSG00000086503',
+        xist_id = "ENSMUSG00000086503",
         y_gene_ids = c(
-            'ENSMUSG00000056673',  # Kdm5d
-            'ENSMUSG00000069049',  # Eif2s3y
-            'ENSMUSG00000068457',  # Uty
-            'ENSMUSG00000069045'   # Ddx3y
+            "ENSMUSG00000056673",  # Kdm5d
+            "ENSMUSG00000069049",  # Eif2s3y
+            "ENSMUSG00000068457",  # Uty
+            "ENSMUSG00000069045"   # Ddx3y
         ),
         ambig_margin = 0.5,
         seed = 1
 ) {
     counts <- as.matrix(counts)
-    if (is.null(rownames(counts))) stop('counts must have rownames (sample IDs).')
-    if (is.null(colnames(counts))) stop('counts must have colnames (gene IDs).')
+    if (is.null(rownames(counts))) stop("counts must have rownames (sample IDs).")
+    if (is.null(colnames(counts))) stop("counts must have colnames (gene IDs).")
 
     # --- Xist-based call ---
     if (!xist_id %in% colnames(counts)) {
-        stop('Xist gene (', xist_id, ') not found in colnames(counts). ',
-             'Column names must be Ensembl gene IDs.')
+        stop("Xist gene (", xist_id, ") not found in colnames(counts). ",
+             "Column names must be Ensembl gene IDs.")
     }
 
     x_vals <- log2(counts[, xist_id] + 1)
 
     if (length(unique(x_vals[is.finite(x_vals)])) < 2) {
-        stop('Xist expression has fewer than 2 distinct values; cannot separate sexes by kmeans.')
+        stop("Xist expression has fewer than 2 distinct values; cannot separate sexes by kmeans.")
     }
 
     set.seed(seed)
@@ -61,10 +61,10 @@ expression_sex_check <- function(
     centers <- tapply(x_vals, km$cluster, mean)
     male_cluster <- as.integer(names(which.min(centers)))
 
-    sex_xist <- ifelse(km$cluster == male_cluster, 'M', 'F')
+    sex_xist <- ifelse(km$cluster == male_cluster, "M", "F")
     xist_cutoff <- mean(centers)
     xist_margin <- abs(x_vals - xist_cutoff)
-    sex_xist[xist_margin < ambig_margin] <- 'Ambiguous'
+    sex_xist[xist_margin < ambig_margin] <- "Ambiguous"
 
     # --- Y-gene-based call ---
     y_present <- character(0)
@@ -86,10 +86,10 @@ expression_sex_check <- function(
             centers_y <- tapply(y_mean_log2, km_y$cluster, mean)
             male_cluster_y <- as.integer(names(which.max(centers_y)))
 
-            sex_y <- ifelse(km_y$cluster == male_cluster_y, 'M', 'F')
+            sex_y <- ifelse(km_y$cluster == male_cluster_y, "M", "F")
             y_cutoff <- mean(centers_y)
             y_margin <- abs(y_mean_log2 - y_cutoff)
-            sex_y[y_margin < ambig_margin] <- 'Ambiguous'
+            sex_y[y_margin < ambig_margin] <- "Ambiguous"
         } else {
             sex_y[] <- NA_character_
         }
@@ -98,9 +98,9 @@ expression_sex_check <- function(
     # --- Consensus ---
     sex_call <- sex_xist
     if (n_y > 0 && any(!is.na(sex_y))) {
-        both_defined <- sex_xist %in% c('M', 'F') & sex_y %in% c('M', 'F')
+        both_defined <- sex_xist %in% c("M", "F") & sex_y %in% c("M", "F")
         disagree <- both_defined & (sex_xist != sex_y)
-        sex_call[disagree] <- 'Ambiguous'
+        sex_call[disagree] <- "Ambiguous"
     }
 
     data.frame(

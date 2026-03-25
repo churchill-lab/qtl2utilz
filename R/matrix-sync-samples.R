@@ -30,17 +30,17 @@
 #' @export
 matrix_sync_samples <- function(mat,
                                 samples_df,
-                                sample_order = c('samples', 'matrix', 'alphabetical')) {
+                                sample_order = c("samples", "matrix", "alphabetical")) {
     sample_order <- match.arg(sample_order)
 
     if (!is.matrix(mat)) mat <- as.matrix(mat)
     if (is.null(rownames(mat))) {
-        stop('mat must have rownames (sample IDs).')
+        stop("mat must have rownames (sample IDs).")
     }
 
     samples_df <- resolve_col_samples(samples_df)
-    if (!'sample_id' %in% names(samples_df)) {
-        stop('samples_df must contain a sample_id column (or an accepted alias).')
+    if (!"sample_id" %in% names(samples_df)) {
+        stop("samples_df must contain a sample_id column (or an accepted alias).")
     }
 
     mat_ids <- rownames(mat)
@@ -48,12 +48,12 @@ matrix_sync_samples <- function(mat,
 
     common_samples <- intersect(mat_ids, df_ids)
     if (!length(common_samples)) {
-        stop('No overlapping samples between mat and samples_df.')
+        stop("No overlapping samples between mat and samples_df.")
     }
 
-    if (sample_order == 'samples') {
+    if (sample_order == "samples") {
         common_samples <- df_ids[df_ids %in% common_samples]
-    } else if (sample_order == 'matrix') {
+    } else if (sample_order == "matrix") {
         common_samples <- mat_ids[mat_ids %in% common_samples]
     } else {
         common_samples <- sort(common_samples)

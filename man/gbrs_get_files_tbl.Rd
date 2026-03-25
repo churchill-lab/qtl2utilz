@@ -25,3 +25,4 @@ Recursively finds all files under \code{directory} whose names match
 the basename (assumes sample ID is the part before the pattern). Used
 internally by \code{gbrs_find_files}; not exported.
 }
+\keyword{internal}

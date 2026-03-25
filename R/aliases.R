@@ -1,17 +1,17 @@
 
 .qtl2utilz_aliases <- list(
-    sample_id = c('sample_id', 'sample.id', 'sampleID', 'sample', 'mouse_id', 'mouse.id', 'mouseID', 'mouse'),
-    marker_id = c('marker_id', 'marker.id', 'markerID', 'markerid', 'marker'),
-    chr       = c('chr', 'chrom', 'chromosome', 'chrom_id', 'chromosome_id'),
-    pos       = c('pos', 'position')
+    sample_id = c("sample_id", "sample.id", "sampleID", "sample", "mouse_id", "mouse.id", "mouseID", "mouse"),
+    marker_id = c("marker_id", "marker.id", "markerID", "markerid", "marker"),
+    chr       = c("chr", "chrom", "chromosome", "chrom_id", "chromosome_id"),
+    pos       = c("pos", "position")
 )
 
 # Normalize column tokens for flexible matching.
 # Lowercase + collapse punctuation/whitespace to underscores.
 .normalize_col_token <- function(x) {
     x <- tolower(as.character(x))
-    x <- gsub('[^a-z0-9]+', '_', x)
-    x <- gsub('^_+|_+$', '', x)
+    x <- gsub("[^a-z0-9]+", "_", x)
+    x <- gsub("^_+|_+$", "", x)
     x
 }
 
@@ -19,10 +19,10 @@
 # Internal utility used by the wrapper helpers below.
 .resolve_col <- function(df, key, aliases = .qtl2utilz_aliases) {
     if (!is.data.frame(df)) {
-        stop('Expected a data.frame for column resolution.')
+        stop("Expected a data.frame for column resolution.")
     }
     if (!key %in% names(aliases)) {
-        stop('Unknown alias key: ', key)
+        stop("Unknown alias key: ", key)
     }
 
     candidates <- unique(aliases[[key]])
@@ -36,44 +36,65 @@
     }
     if (length(hits) == 0) {
         stop(
-            'Missing column for \'', key, '\'. Accepted aliases: ',
-            paste(candidates, collapse = ', '),
-            ' (case-insensitive; punctuation-insensitive).'
+            "Missing column for '", key, "'. Accepted aliases: ",
+            paste(candidates, collapse = ", "),
+            " (case-insensitive; punctuation-insensitive)."
         )
     }
 
     stop(
-        'Ambiguous columns for \'', key, '\': ',
-        paste(hits, collapse = ', '),
-        '. Keep only one of these aliases.'
+        "Ambiguous columns for '", key, "': ",
+        paste(hits, collapse = ", "),
+        ". Keep only one of these aliases."
     )
 }
 
-#' Resolve and normalize sample key column to canonical sample_id.
-#' Returns a data.frame with the renamed column.
+#' Resolve and normalize sample key column to canonical sample_id
+#'
+#' Renames the detected sample column to \code{sample_id}. Common column name
+#' variants (e.g. \code{sample}, \code{mouse_id}) are recognized case- and
+#' punctuation-insensitively.
+#'
+#' @param df A data frame with a sample identifier column (or an accepted alias).
+#'
+#' @return \code{df} with the sample column renamed to \code{sample_id}.
+#'
 #' @export
 resolve_col_samples <- function(df) {
-    sample_col <- .resolve_col(df, 'sample_id')
-    names(df)[names(df) == sample_col] <- 'sample_id'
+    sample_col <- .resolve_col(df, "sample_id")
+    names(df)[names(df) == sample_col] <- "sample_id"
     df
 }
 
-#' Resolve and normalize marker/map key columns to canonical names.
-#' Returns a data.frame with marker_id, chr, and pos column names.
+#' Resolve and normalize marker/map key columns to canonical names
+#'
+#' Renames columns to \code{marker_id}, \code{chr}, and \code{pos}. Common
+#' name variants are recognized case- and punctuation-insensitively.
+#'
+#' @param df A data frame with marker ID, chromosome, and position columns (or accepted aliases).
+#'
+#' @return \code{df} with those columns renamed to \code{marker_id}, \code{chr}, and \code{pos}.
+#'
 #' @export
 resolve_col_markers <- function(df) {
-    marker_col <- .resolve_col(df, 'marker_id')
-    chr_col <- .resolve_col(df, 'chr')
-    pos_col <- .resolve_col(df, 'pos')
+    marker_col <- .resolve_col(df, "marker_id")
+    chr_col <- .resolve_col(df, "chr")
+    pos_col <- .resolve_col(df, "pos")
 
-    names(df)[names(df) == marker_col] <- 'marker_id'
-    names(df)[names(df) == chr_col] <- 'chr'
-    names(df)[names(df) == pos_col] <- 'pos'
+    names(df)[names(df) == marker_col] <- "marker_id"
+    names(df)[names(df) == chr_col] <- "chr"
+    names(df)[names(df) == pos_col] <- "pos"
     df
 }
 
-#' Wrapper around janitor::clean_names to standardize column names.
-#' Returns a standardized data.frame with cleaned column names.
+#' Standardize column names with janitor
+#'
+#' Thin wrapper around \code{janitor::clean_names()}.
+#'
+#' @param df A data frame.
+#'
+#' @return \code{df} with syntactically consistent, lowercase snake_case names.
+#'
 #' @export
 fix_cols <- function(df) {
     janitor::clean_names(df)

@@ -11,6 +11,6 @@
 #'
 #' @export
 rank_z <- function(x) {
-    x <- rank(x, na.last = 'keep', ties.method = 'average') / (sum(!is.na(x)) + 1)
+    x <- rank(x, na.last = "keep", ties.method = "average") / (sum(!is.na(x)) + 1)
     qnorm(x)
 }

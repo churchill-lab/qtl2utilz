@@ -44,7 +44,7 @@ genoprobs_compare <- function(genoprobs_1,
     )
 
     # Compare qtl2 attributes.
-    attrs <- c('crosstype', 'is_x_chr', 'alleles', 'alleleprobs')
+    attrs <- c("crosstype", "is_x_chr", "alleles", "alleleprobs")
     attr_compare <- list()
     for (a in attrs) {
         v1 <- attr(genoprobs_1, a, exact = TRUE)
@@ -61,7 +61,7 @@ genoprobs_compare <- function(genoprobs_1,
     }
     attributes_out <- attr_compare
 
-    by_chr <- setNames(vector('list', length(chr_common)), chr_common)
+    by_chr <- setNames(vector("list", length(chr_common)), chr_common)
     summary_lines <- character()
 
     for (chr in chr_common) {
@@ -69,14 +69,14 @@ genoprobs_compare <- function(genoprobs_1,
         pr2 <- gp2[[chr]]
 
         if (length(dim(pr1)) != 3 || length(dim(pr2)) != 3) {
-            by_chr[[chr]] <- list(error = paste0('Chr ', chr, ': one or both arrays are not 3D'))
+            by_chr[[chr]] <- list(error = paste0("Chr ", chr, ": one or both arrays are not 3D"))
             next
         }
 
         dn1 <- dimnames(pr1)
         dn2 <- dimnames(pr2)
         if (is.null(dn1) || is.null(dn2)) {
-            by_chr[[chr]] <- list(error = paste0('Chr ', chr, ': one or both arrays have NULL dimnames'))
+            by_chr[[chr]] <- list(error = paste0("Chr ", chr, ": one or both arrays have NULL dimnames"))
             next
         }
         s1 <- if (is.null(dn1[[1]])) character(0) else dn1[[1]]
@@ -149,7 +149,7 @@ genoprobs_compare <- function(genoprobs_1,
             v2 <- pr2[i_s2, i_f2, i_m2, drop = FALSE]
 
             if (!identical(dim(v1), dim(v2))) {
-                stop('Aligned value arrays must have identical dimensions before comparison.')
+                stop("Aligned value arrays must have identical dimensions before comparison.")
             }
             diff <- as.vector(v1) - as.vector(v2)
             finite_diff <- diff[is.finite(diff)]
@@ -170,7 +170,7 @@ genoprobs_compare <- function(genoprobs_1,
         } else if (compare_values) {
             chr_result$values <- list(
                 skipped = TRUE,
-                reason = 'No overlapping samples, founders, and/or markers for value comparison'
+                reason = "No overlapping samples, founders, and/or markers for value comparison"
             )
         }
 
@@ -178,9 +178,9 @@ genoprobs_compare <- function(genoprobs_1,
     }
 
     summary_lines <- c(
-        sprintf('Chromosomes: %d in both, %d only in 1, %d only in 2',
+        sprintf("Chromosomes: %d in both, %d only in 1, %d only in 2",
                 length(chr_common), length(chr_only_1), length(chr_only_2)),
-        sprintf('Chromosome order match: %s', chr_order_match)
+        sprintf("Chromosome order match: %s", chr_order_match)
     )
     if (length(chr_common) > 0) {
         order_diff <- vapply(by_chr, function(x) {
@@ -191,7 +191,7 @@ genoprobs_compare <- function(genoprobs_1,
         }, FALSE)
         n_order_diff <- sum(order_diff)
         summary_lines <- c(summary_lines,
-                          sprintf('Chr with dimension-order mismatch: %d', n_order_diff))
+                          sprintf("Chr with dimension-order mismatch: %d", n_order_diff))
         if (compare_values) {
             n_ident <- sum(vapply(by_chr, function(x) {
                 if (is.null(x$values) || isTRUE(x$values$skipped)) {
@@ -206,7 +206,7 @@ genoprobs_compare <- function(genoprobs_1,
                 1
             }, 0))
             summary_lines <- c(summary_lines,
-                              sprintf('Chr with identical values (tol=%g): %d / %d', tol, n_ident, n_total))
+                              sprintf("Chr with identical values (tol=%g): %d / %d", tol, n_ident, n_total))
         }
     }
 

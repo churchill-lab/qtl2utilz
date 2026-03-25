@@ -6,6 +6,19 @@
 \usage{
 .swapmax_label_groups(col_samples, expected_row, assigned_row, mismatch_mask)
 }
+\arguments{
+\item{col_samples}{Character vector of query (column) sample IDs.}
+
+\item{expected_row}{Character vector giving the expected reference row for each column.}
+
+\item{assigned_row}{Character vector of globally assigned reference row per column.}
+
+\item{mismatch_mask}{Logical vector; \code{TRUE} where the column is a mismatch.}
+}
+\value{
+A list with components \code{id} (character vector of group IDs)
+  and \code{type} (character: \code{'pair'}, \code{'cycle'}, or \code{'complex'}).
+}
 \description{
 Internal helper for \code{genoprobs_detect_sample_swaps()}.
 }

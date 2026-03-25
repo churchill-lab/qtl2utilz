@@ -45,13 +45,13 @@
 genoprobs_sync <- function(genoprobs,
                           samples_df = NULL,
                           markers_df = NULL,
-                          sample_order = c('samples', 'genoprobs', 'alphabetical'),
-                          unit = c('auto', 'Mb', 'bp')) {
+                          sample_order = c("samples", "genoprobs", "alphabetical"),
+                          unit = c("auto", "Mb", "bp")) {
     sample_order <- match.arg(sample_order)
     unit <- match.arg(unit)
 
     if(is.null(samples_df) && is.null(markers_df)) {
-        stop('At least one of samples_df or markers_df must be provided.')
+        stop("At least one of samples_df or markers_df must be provided.")
     }
 
     result <- list()

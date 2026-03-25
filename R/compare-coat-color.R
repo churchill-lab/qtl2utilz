@@ -31,7 +31,7 @@ call_diplotypes <- function(pr) {
     })
     diplotype_size <- sapply(diplotype_index, length)
 
-    diplotype <- setNames(rep('', length(diplotype_index)), names(diplotype_index))
+    diplotype <- setNames(rep("", length(diplotype_index)), names(diplotype_index))
 
     # Set homozygotes.
     homozygous_rows <- which(diplotype_size == 1)
@@ -45,7 +45,7 @@ call_diplotypes <- function(pr) {
     diplotype[heterozygous_rows] <- sapply(
         diplotype_index[heterozygous_rows],
         paste0,
-        collapse = ''
+        collapse = ""
     )
 
     # Rows that do not sum to 2 are ambiguous after rounding. Fall back to the
@@ -55,7 +55,7 @@ call_diplotypes <- function(pr) {
 
     for (row_idx in ambiguous_rows) {
         top_founders <- sort(pr[row_idx, ])[7:8]
-        diplotype[row_idx] <- paste0(sort(names(top_founders)), collapse = '')
+        diplotype[row_idx] <- paste0(sort(names(top_founders)), collapse = "")
     }
 
     data.frame(id = names(diplotype), dt = diplotype, round(pr, digits = 3))
@@ -86,17 +86,17 @@ call_diplotypes <- function(pr) {
 #'
 #' @export
 compare_coat_color <- function(pheno, probs, map) {
-    albino_locus <- list(chr = '7', pos = 87.108308)
-    black_locus <- list(chr = '2', pos = 154.842726)
+    albino_locus <- list(chr = "7", pos = 87.108308)
+    black_locus <- list(chr = "2", pos = 154.842726)
 
     # Verify that samples are aligned between `pheno` and `probs`.
     if (!identical(pheno$id, rownames(probs[[1]]))) {
-        stop('pheno$id must match rownames(probs[[1]]) in the same order.')
+        stop("pheno$id must match rownames(probs[[1]]) in the same order.")
     }
 
     # Verify that `probs` and `map` use the same chromosome order.
     if (!identical(names(map), names(probs))) {
-        stop('names(map) must match names(probs) in the same order.')
+        stop("names(map) must match names(probs) in the same order.")
     }
 
     # Verify that marker names are aligned between `map` and `probs` on Chr 2
@@ -105,13 +105,13 @@ compare_coat_color <- function(pheno, probs, map) {
         names(map[[black_locus$chr]]),
         dimnames(probs[[black_locus$chr]])[[3]]
     )) {
-        stop('Black-locus marker names must align between map and probs.')
+        stop("Black-locus marker names must align between map and probs.")
     }
     if (!identical(
         names(map[[albino_locus$chr]]),
         dimnames(probs[[albino_locus$chr]])[[3]]
     )) {
-        stop('Albino-locus marker names must align between map and probs.')
+        stop("Albino-locus marker names must align between map and probs.")
     }
 
     # Get albino diplotypes.
@@ -124,7 +124,7 @@ compare_coat_color <- function(pheno, probs, map) {
 
     # Call diplotypes.
     albino_dt <- call_diplotypes(albino_probs)
-    colnames(albino_dt)[-1] <- paste0('albino_', colnames(albino_dt)[-1])
+    colnames(albino_dt)[-1] <- paste0("albino_", colnames(albino_dt)[-1])
 
     # Get black diplotypes.
     # Find the nearest marker to the black locus.
@@ -136,25 +136,25 @@ compare_coat_color <- function(pheno, probs, map) {
 
     # Call diplotypes.
     black_dt <- call_diplotypes(black_probs)
-    colnames(black_dt)[-1] <- paste0('black_', colnames(black_dt)[-1])
+    colnames(black_dt)[-1] <- paste0("black_", colnames(black_dt)[-1])
 
     # Create return value data.frame.
     result <- data.frame(
         id = pheno$id,
         coat = pheno$coat
     )
-    result <- merge(result, albino_dt, by = 'id')
-    result <- merge(result, black_dt, by = 'id')
+    result <- merge(result, albino_dt, by = "id")
+    result <- merge(result, black_dt, by = "id")
 
     # Infer the coat color from the diplotype.
     # A/J (A) and NOD (D) contribute the albino allele.
-    result$geno_coat <- ifelse(result$albino_dt %in% c('AA', 'AD', 'DD'),
-                               'albino', 'agouti')
+    result$geno_coat <- ifelse(result$albino_dt %in% c("AA", "AD", "DD"),
+                               "albino", "agouti")
     # A/J (A) and BL6 (B) contribute the black allele. Albino is epistatic
     # to black.
-    result$geno_coat <- ifelse(result$black_dt %in% c('AA', 'AB', 'BB') &
-                                   !result$albino_dt %in% c('AA', 'AD', 'DD'),
-                               'black', result$geno_coat)
+    result$geno_coat <- ifelse(result$black_dt %in% c("AA", "AB", "BB") &
+                                   !result$albino_dt %in% c("AA", "AD", "DD"),
+                               "black", result$geno_coat)
 
     # If the phenotype coat color and the inferred coat color match, set
     # `match` to TRUE.
@@ -162,8 +162,8 @@ compare_coat_color <- function(pheno, probs, map) {
 
     # Reorder the columns before returning the final result.
     result[, c(
-        'id', 'coat', 'albino_dt', 'black_dt', 'geno_coat', 'match',
-        paste0('albino_', LETTERS[1:8]),
-        paste0('black_', LETTERS[1:8])
+        "id", "coat", "albino_dt", "black_dt", "geno_coat", "match",
+        paste0("albino_", LETTERS[1:8]),
+        paste0("black_", LETTERS[1:8])
     )]
 }

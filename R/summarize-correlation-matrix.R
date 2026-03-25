@@ -77,14 +77,14 @@
 #' @export
 summarize_correlation_matrix <- function(cor_mat) {
     if (!is.matrix(cor_mat)) {
-        stop('cor_mat must be a matrix.')
+        stop("cor_mat must be a matrix.")
     }
 
     row_ids <- rownames(cor_mat)
     col_ids <- colnames(cor_mat)
 
     if (is.null(row_ids) || is.null(col_ids)) {
-        stop('cor_mat must have rownames and colnames.')
+        stop("cor_mat must have rownames and colnames.")
     }
 
     n_rows <- nrow(cor_mat)
@@ -103,7 +103,7 @@ summarize_correlation_matrix <- function(cor_mat) {
     #
     # max.col() finds the column index of the maximum value for each row
     #
-    best_col_index <- max.col(cor_mat, ties.method = 'first')
+    best_col_index <- max.col(cor_mat, ties.method = "first")
 
     best_score <- cor_mat[cbind(seq_len(n_rows), best_col_index)]
     best_match <- col_ids[best_col_index]
@@ -118,7 +118,7 @@ summarize_correlation_matrix <- function(cor_mat) {
     cor_masked_best <- cor_mat
     cor_masked_best[cbind(seq_len(n_rows), best_col_index)] <- -Inf
 
-    second_col_index <- max.col(cor_masked_best, ties.method = 'first')
+    second_col_index <- max.col(cor_masked_best, ties.method = "first")
     second_score <- cor_masked_best[cbind(seq_len(n_rows), second_col_index)]
     second_match <- col_ids[second_col_index]
 
@@ -153,7 +153,7 @@ summarize_correlation_matrix <- function(cor_mat) {
                               expected_col_index[has_expected])] <- -Inf
 
         best_nonself_col_index <- max.col(cor_masked_diag,
-                                          ties.method = 'first')
+                                          ties.method = "first")
 
         best_nonself_score <-
             cor_masked_diag[cbind(seq_len(n_rows),

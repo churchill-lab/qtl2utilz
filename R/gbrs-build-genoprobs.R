@@ -4,12 +4,14 @@
 #' founder/haplotype columns labeled A--H. Used internally by
 #' \code{gbrs_build_genoprobs}; not exported.
 #'
-#' @param x Path to a GBRS genoprobs TSV file.
+#' @param path Path to a GBRS genoprobs TSV file.
 #'
 #' @return A matrix with rows = markers and columns = A--H (founder genotypes).
+#'
+#' @keywords internal
 gbrs_read_genoprobs_file <- function(path) {
     # read GBRS genoprobs TSV
-    df <- read.delim(path, header = TRUE, sep = '\t', check.names = FALSE)
+    df <- read.delim(path, header = TRUE, sep = "\t", check.names = FALSE)
 
     # keep only numeric columns (founder probs); ignore any extra non-numeric cols
     num_cols <- vapply(df, is.numeric, logical(1))
@@ -18,8 +20,8 @@ gbrs_read_genoprobs_file <- function(path) {
     # We expect exactly 8 founder columns (A–H)
     if (ncol(founders) != 8L) {
         stop(
-            'Expected 8 numeric founder columns in ', path,
-            ' but found ', ncol(founders), '.'
+            "Expected 8 numeric founder columns in ", path,
+            " but found ", ncol(founders), "."
         )
     }
 
@@ -51,23 +53,23 @@ gbrs_build_genoprobs <- function(gbrs_files_tbl, markers) {
     gbrs_files_tbl <- resolve_col_samples(gbrs_files_tbl)
     markers <- resolve_col_markers(markers)
 
-    if (!all(c('sample_id', 'full_path_genoprobs') %in% names(gbrs_files_tbl))) {
-        stop('gbrs_files_tbl must contain \'sample_id\' and \'full_path_genoprobs\'')
+    if (!all(c("sample_id", "full_path_genoprobs") %in% names(gbrs_files_tbl))) {
+        stop("gbrs_files_tbl must contain 'sample_id' and 'full_path_genoprobs'")
     }
     if (nrow(gbrs_files_tbl) == 0) {
-        stop('gbrs_files_tbl has 0 rows; no genoprobs files to read.')
+        stop("gbrs_files_tbl has 0 rows; no genoprobs files to read.")
     }
     if (anyDuplicated(gbrs_files_tbl$sample_id)) {
-        stop('gbrs_files_tbl has duplicated sample_id values.')
+        stop("gbrs_files_tbl has duplicated sample_id values.")
     }
-    if (!all(c('marker_id', 'chr', 'pos') %in% names(markers))) {
-        stop('markers must contain \'marker_id\', \'chr\', and \'pos\'')
+    if (!all(c("marker_id", "chr", "pos") %in% names(markers))) {
+        stop("markers must contain 'marker_id', 'chr', and 'pos'")
     }
     if (nrow(markers) == 0) {
-        stop('markers has 0 rows; no markers available.')
+        stop("markers has 0 rows; no markers available.")
     }
     if (anyDuplicated(markers$marker_id)) {
-        stop('markers has duplicated marker_id values.')
+        stop("markers has duplicated marker_id values.")
     }
 
     # read in the probabilities
@@ -93,9 +95,9 @@ gbrs_build_genoprobs <- function(gbrs_files_tbl, markers) {
     }, logical(1))]
     if (length(bad_shape) > 0) {
         stop(
-            'Genoprobs files have unexpected dimensions for samples: ',
-            paste(bad_shape, collapse = ', '),
-            '. Expected ', n_markers, ' rows (markers) and 8 columns (founders A-H).'
+            "Genoprobs files have unexpected dimensions for samples: ",
+            paste(bad_shape, collapse = ", "),
+            ". Expected ", n_markers, " rows (markers) and 8 columns (founders A-H)."
         )
     }
 
@@ -115,8 +117,8 @@ gbrs_build_genoprobs <- function(gbrs_files_tbl, markers) {
     qtl2convert::probs_doqtl_to_qtl2(
         probs,
         map = markers,
-        marker_column = 'marker_id',
-        chr_column = 'chr',
-        pos_column = 'pos'
+        marker_column = "marker_id",
+        chr_column = "chr",
+        pos_column = "pos"
     )
 }

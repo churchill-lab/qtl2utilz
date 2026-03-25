@@ -2,12 +2,17 @@
 % Please edit documentation in R/aliases.R
 \name{resolve_col_markers}
 \alias{resolve_col_markers}
-\title{Resolve and normalize marker/map key columns to canonical names.
-Returns a data.frame with marker_id, chr, and pos column names.}
+\title{Resolve and normalize marker/map key columns to canonical names}
 \usage{
 resolve_col_markers(df)
 }
+\arguments{
+\item{df}{A data frame with marker ID, chromosome, and position columns (or accepted aliases).}
+}
+\value{
+\code{df} with those columns renamed to \code{marker_id}, \code{chr}, and \code{pos}.
+}
 \description{
-Resolve and normalize marker/map key columns to canonical names.
-Returns a data.frame with marker_id, chr, and pos column names.
+Renames columns to \code{marker_id}, \code{chr}, and \code{pos}. Common
+name variants are recognized case- and punctuation-insensitively.
 }

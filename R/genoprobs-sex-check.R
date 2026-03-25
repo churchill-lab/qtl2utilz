@@ -20,11 +20,13 @@
 #'   }
 #'
 #' @export
-genoprobs_sex_check <- function(genoprobs, x_chr = 'X',
+genoprobs_sex_check <- function(genoprobs, x_chr = "X",
                                 ambig_margin = 0.03, seed = 1) {
     if (!x_chr %in% names(genoprobs)) {
-        stop('Chromosome \'', x_chr, '\' not found in genoprobs. ',
-             'Available: ', paste(names(genoprobs), collapse = ', '))
+        stop(
+            "Chromosome '", x_chr, "' not found in genoprobs. ",
+            "Available: ", paste(names(genoprobs), collapse = ", ")
+        )
     }
 
     hx <- .hx_from_genoprobs(genoprobs[[x_chr]])
@@ -35,12 +37,12 @@ genoprobs_sex_check <- function(genoprobs, x_chr = 'X',
     centers <- tapply(as.numeric(hx), km$cluster, mean, na.rm = TRUE)
     male_cluster <- as.integer(names(which.min(centers)))
 
-    sex <- ifelse(km$cluster == male_cluster, 'M', 'F')
+    sex <- ifelse(km$cluster == male_cluster, "M", "F")
     cutoff <- mean(as.numeric(centers))
     margin <- abs(as.numeric(hx) - cutoff)
 
     if (ambig_margin > 0) {
-        sex[margin < ambig_margin] <- 'Ambiguous'
+        sex[margin < ambig_margin] <- "Ambiguous"
     }
 
     data.frame(
@@ -86,23 +88,23 @@ genoprobs_sex_check <- function(genoprobs, x_chr = 'X',
 #'
 #' @export
 genoprobs_sex_check_labels <- function(sex_df, labeled_sex,
-                                       sex_col = 'sex_call',
-                                       sample_col = 'sample',
-                                       sex_label_col = 'sex') {
+                                       sex_col = "sex_call",
+                                       sample_col = "sample",
+                                       sex_label_col = "sex") {
     if (!sex_col %in% names(sex_df)) {
-        stop('Column \'', sex_col, '\' not found in sex_df.')
+        stop("Column '", sex_col, "' not found in sex_df.")
     }
-    if (!'sample' %in% names(sex_df)) {
-        stop('Column \'sample\' not found in sex_df.')
+    if (!"sample" %in% names(sex_df)) {
+        stop("Column 'sample' not found in sex_df.")
     }
 
     # Build a named lookup vector from whatever form labeled_sex takes
     if (is.data.frame(labeled_sex)) {
         if (!sample_col %in% names(labeled_sex)) {
-            stop('Column \'', sample_col, '\' not found in labeled_sex data.frame.')
+            stop("Column '", sample_col, "' not found in labeled_sex data.frame.")
         }
         if (!sex_label_col %in% names(labeled_sex)) {
-            stop('Column \'', sex_label_col, '\' not found in labeled_sex data.frame.')
+            stop("Column '", sex_label_col, "' not found in labeled_sex data.frame.")
         }
         sex_vec <- setNames(
             toupper(substr(as.character(labeled_sex[[sex_label_col]]), 1, 1)),
@@ -114,11 +116,11 @@ genoprobs_sex_check_labels <- function(sex_df, labeled_sex,
             names(sex_vec) <- names(labeled_sex)
         }
     } else {
-        stop('labeled_sex must be a named character vector or a data.frame.')
+        stop("labeled_sex must be a named character vector or a data.frame.")
     }
 
     # Normalize to single-letter codes
-    sex_vec[!sex_vec %in% c('F', 'M')] <- NA_character_
+    sex_vec[!sex_vec %in% c("F", "M")] <- NA_character_
 
     # Match to sex_df samples
     label <- sex_vec[sex_df$sample]
@@ -126,7 +128,7 @@ genoprobs_sex_check_labels <- function(sex_df, labeled_sex,
     sex_df$sex_label <- as.character(label)
     called <- sex_df[[sex_col]]
     sex_df$sex_concordant <- ifelse(
-        is.na(label) | is.na(called) | called == 'Ambiguous',
+        is.na(label) | is.na(called) | called == "Ambiguous",
         NA,
         label == called
     )
@@ -146,7 +148,7 @@ genoprobs_sex_check_labels <- function(sex_df, labeled_sex,
 #' @keywords internal
 .hx_from_genoprobs <- function(gp_chr) {
     if (length(dim(gp_chr)) != 3) {
-        stop('gp_chr must be a 3D array: samples x founders x markers.')
+        stop("gp_chr must be a 3D array: samples x founders x markers.")
     }
     # H[sample, pos] = 1 - sum_f p^2
     H_sp <- 1 - apply(gp_chr^2, c(1, 3), sum, na.rm = TRUE)

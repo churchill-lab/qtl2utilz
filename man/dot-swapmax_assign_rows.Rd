@@ -6,8 +6,18 @@
 \usage{
 .swapmax_assign_rows(sim, method = c("greedy", "hungarian"))
 }
+\arguments{
+\item{sim}{Numeric matrix (rows = reference, columns = query); larger values
+mean more similar.}
+
+\item{method}{\code{'greedy'} (always available) or \code{'hungarian'}
+(requires suggested package \pkg{clue}).}
+}
+\value{
+Integer vector of length \code{ncol(sim)}: chosen row index for each
+  column, or \code{NA} where unassigned.
+}
 \description{
 Internal helper for \code{genoprobs_detect_sample_swaps()}.
-Returns integer vector of row indices for each column (or \code{NA}).
 }
 \keyword{internal}

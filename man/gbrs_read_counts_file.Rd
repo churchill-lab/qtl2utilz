@@ -17,3 +17,4 @@ Reads a tab-delimited GBRS expected read-counts file. Expected columns:
 \code{locus} (gene ID), founder columns A--H, \code{total}, and optionally
 \code{notes}. Used internally by \code{gbrs_build_counts}; not exported.
 }
+\keyword{internal}

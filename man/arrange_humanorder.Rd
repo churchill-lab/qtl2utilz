@@ -2,16 +2,19 @@
 % Please edit documentation in R/arrange-humanorder.R
 \name{arrange_humanorder}
 \alias{arrange_humanorder}
-\title{Sort a data frame by an ID column like F1, F11, F100
-so that F11 comes before F100
-Sort a data frame by an ID column like F1, F11, F100
-using gtools::mixedorder(), which is safer than mixedsort() for data frames}
+\title{Sort a data frame by natural (human) order on one column}
 \usage{
 arrange_humanorder(df, col)
 }
+\arguments{
+\item{df}{A data frame.}
+
+\item{col}{Unquoted column name (tidy-eval), as in \code{dplyr::arrange()}.}
+}
+\value{
+\code{df} with rows reordered by mixed/natural order on \code{col}.
+}
 \description{
-Sort a data frame by an ID column like F1, F11, F100
-so that F11 comes before F100
-Sort a data frame by an ID column like F1, F11, F100
-using gtools::mixedorder(), which is safer than mixedsort() for data frames
+Uses \code{gtools::mixedorder()} so identifiers like \code{F1}, \code{F11},
+\code{F100} sort in intuitive order (not lexicographic).
 }

@@ -2,12 +2,18 @@
 % Please edit documentation in R/aliases.R
 \name{resolve_col_samples}
 \alias{resolve_col_samples}
-\title{Resolve and normalize sample key column to canonical sample_id.
-Returns a data.frame with the renamed column.}
+\title{Resolve and normalize sample key column to canonical sample_id}
 \usage{
 resolve_col_samples(df)
 }
+\arguments{
+\item{df}{A data frame with a sample identifier column (or an accepted alias).}
+}
+\value{
+\code{df} with the sample column renamed to \code{sample_id}.
+}
 \description{
-Resolve and normalize sample key column to canonical sample_id.
-Returns a data.frame with the renamed column.
+Renames the detected sample column to \code{sample_id}. Common column name
+variants (e.g. \code{sample}, \code{mouse_id}) are recognized case- and
+punctuation-insensitively.
 }

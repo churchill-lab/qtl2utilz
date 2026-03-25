@@ -12,12 +12,15 @@ genoprobs_compute_similarity(
 )
 }
 \arguments{
-\item{genoprobs_1, genoprobs_2}{calc_genoprob objects already aligned to the same map/grid
-(e.g. via genoprobs_sync_markers).}
+\item{genoprobs_1}{First \code{calc_genoprob} object, aligned to the same
+marker grid as \code{genoprobs_2} (e.g. via \code{\link{genoprobs_sync_markers}}).}
 
-\item{metric}{'pearson' or 'cosine'}
+\item{genoprobs_2}{Second \code{calc_genoprob} object.}
 
-\item{by_chr}{if TRUE, also return per-chromosome similarity matrices}
+\item{metric}{Similarity metric: \code{'pearson'} or \code{'cosine'}.}
+
+\item{by_chr}{If \code{TRUE}, also return per-chromosome similarity matrices
+in \code{sim_by_chr}.}
 }
 \value{
 list(sim, sim_by_chr, n_features). sim has rownames = genoprobs_1 sample IDs,

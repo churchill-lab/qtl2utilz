@@ -7,7 +7,7 @@
 gbrs_read_genoprobs_file(path)
 }
 \arguments{
-\item{x}{Path to a GBRS genoprobs TSV file.}
+\item{path}{Path to a GBRS genoprobs TSV file.}
 }
 \value{
 A matrix with rows = markers and columns = A--H (founder genotypes).
@@ -17,3 +17,4 @@ Reads a tab-delimited GBRS genoprobs file and returns a matrix with
 founder/haplotype columns labeled A--H. Used internally by
 \code{gbrs_build_genoprobs}; not exported.
 }
+\keyword{internal}

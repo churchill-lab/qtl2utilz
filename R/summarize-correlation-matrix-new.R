@@ -77,14 +77,14 @@
 #' @export
 summarize_correlation_matrix_new <- function(cor_mat) {
     if (!is.matrix(cor_mat)) {
-        stop('cor_mat must be a matrix.')
+        stop("cor_mat must be a matrix.")
     }
 
     row_ids <- rownames(cor_mat)
     col_ids <- colnames(cor_mat)
 
     if (is.null(row_ids) || is.null(col_ids)) {
-        stop('cor_mat must have rownames and colnames.')
+        stop("cor_mat must have rownames and colnames.")
     }
 
     n_rows <- nrow(cor_mat)

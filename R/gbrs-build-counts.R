@@ -7,8 +7,10 @@
 #' @param x Path to a GBRS read-counts TSV file.
 #'
 #' @return A data frame with at least \code{locus} and \code{total} columns.
+#'
+#' @keywords internal
 gbrs_read_counts_file <- function(x) {
-    read.table(x, header = TRUE, sep = '\t')
+    read.table(x, header = TRUE, sep = "\t")
 }
 
 
@@ -29,14 +31,14 @@ gbrs_read_counts_file <- function(x) {
 gbrs_build_counts <- function(gbrs_files_tbl) {
     gbrs_files_tbl <- resolve_col_samples(gbrs_files_tbl)
 
-    if (!all(c('sample_id', 'full_path_counts') %in% names(gbrs_files_tbl))) {
-        stop('gbrs_files_tbl must contain \'sample_id\' and \'full_path_counts\'')
+    if (!all(c("sample_id", "full_path_counts") %in% names(gbrs_files_tbl))) {
+        stop("gbrs_files_tbl must contain 'sample_id' and 'full_path_counts'")
     }
     if (nrow(gbrs_files_tbl) == 0) {
-        stop('gbrs_files_tbl has 0 rows; no count files to read.')
+        stop("gbrs_files_tbl has 0 rows; no count files to read.")
     }
     if (anyDuplicated(gbrs_files_tbl$sample_id)) {
-        stop('gbrs_files_tbl has duplicated sample_id values.')
+        stop("gbrs_files_tbl has duplicated sample_id values.")
     }
 
     # Read the count files, one per sample.
@@ -51,12 +53,12 @@ gbrs_build_counts <- function(gbrs_files_tbl) {
 
     # Validate the required columns before any downstream reshaping.
     bad_schema <- names(raw_counts)[!vapply(raw_counts, function(x) {
-        all(c('locus', 'total') %in% names(x))
+        all(c("locus", "total") %in% names(x))
     }, logical(1))]
     if (length(bad_schema) > 0) {
         stop(
-            'Count files are missing required columns (locus/total) for samples: ',
-            paste(bad_schema, collapse = ', ')
+            "Count files are missing required columns (locus/total) for samples: ",
+            paste(bad_schema, collapse = ", ")
         )
     }
 
@@ -65,8 +67,8 @@ gbrs_build_counts <- function(gbrs_files_tbl) {
     locus_ok <- vapply(raw_counts[-1], function(x) identical(x$locus, locus_ref), logical(1))
     if (!all(locus_ok)) {
         bad <- names(which(!locus_ok))
-        stop('All samples must have identical locus IDs in the same order. Mismatch in: ',
-             paste(bad, collapse = ', '))
+        stop("All samples must have identical locus IDs in the same order. Mismatch in: ",
+             paste(bad, collapse = ", "))
     }
 
     # Extract locus/total, bind the samples together, then pivot to samples x genes.
@@ -75,7 +77,7 @@ gbrs_build_counts <- function(gbrs_files_tbl) {
         all_counts[[i]] <- dplyr::select(raw_counts[[i]], locus, total)
     }
 
-    all_counts <- dplyr::bind_rows(all_counts, .id = 'sample_id')
+    all_counts <- dplyr::bind_rows(all_counts, .id = "sample_id")
 
     all_counts <- all_counts |>
         tidyr::pivot_wider(
@@ -83,7 +85,7 @@ gbrs_build_counts <- function(gbrs_files_tbl) {
             values_from = total,
             values_fill = NA
         ) |>
-        tibble::column_to_rownames('sample_id')
+        tibble::column_to_rownames("sample_id")
 
     all_counts
 }

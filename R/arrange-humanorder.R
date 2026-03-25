@@ -1,7 +1,13 @@
-#' Sort a data frame by an ID column like F1, F11, F100
-#' so that F11 comes before F100
-#' Sort a data frame by an ID column like F1, F11, F100
-#' using gtools::mixedorder(), which is safer than mixedsort() for data frames
+#' Sort a data frame by natural (human) order on one column
+#'
+#' Uses \code{gtools::mixedorder()} so identifiers like \code{F1}, \code{F11},
+#' \code{F100} sort in intuitive order (not lexicographic).
+#'
+#' @param df A data frame.
+#' @param col Unquoted column name (tidy-eval), as in \code{dplyr::arrange()}.
+#'
+#' @return \code{df} with rows reordered by mixed/natural order on \code{col}.
+#'
 #' @export
 arrange_humanorder <- function(df, col) {
     col_quo <- rlang::enquo(col)

@@ -1,10 +1,17 @@
 #' Extract sample names from a calc_genoprob object
+#'
+#' @param gp A \code{calc_genoprob} object (named list of 3D arrays).
+#' @param chr Chromosome name to read from; if \code{NULL}, uses the first
+#'   chromosome in \code{gp}.
+#'
+#' @return Character vector of sample IDs (rownames of \code{gp[[chr]]}).
+#'
 #' @keywords internal
 get_genoprobs_samples <- function(gp, chr = NULL) {
     if (is.null(chr)) chr <- names(gp)[1]
     dn <- dimnames(gp[[chr]])
     if (is.null(dn) || length(dn) < 1 || is.null(dn[[1]])) {
-        stop('Could not find sample names in dimnames(genoprobs[[chr]])[[1]].')
+        stop("Could not find sample names in dimnames(genoprobs[[chr]])[[1]].")
     }
     dn[[1]]
 }
@@ -37,16 +44,18 @@ get_genoprobs_samples <- function(gp, chr = NULL) {
 #' number of haplotypes and same number of markers per chromosome (enforced
 #' internally); they may have different numbers of samples.
 #'
-#' @param genoprobs_1,genoprobs_2 calc_genoprob objects already aligned to the same map/grid
-#'   (e.g. via genoprobs_sync_markers).
-#' @param metric 'pearson' or 'cosine'
-#' @param by_chr if TRUE, also return per-chromosome similarity matrices
+#' @param genoprobs_1 First \code{calc_genoprob} object, aligned to the same
+#'   marker grid as \code{genoprobs_2} (e.g. via \code{\link{genoprobs_sync_markers}}).
+#' @param genoprobs_2 Second \code{calc_genoprob} object.
+#' @param metric Similarity metric: \code{'pearson'} or \code{'cosine'}.
+#' @param by_chr If \code{TRUE}, also return per-chromosome similarity matrices
+#'   in \code{sim_by_chr}.
 #'
 #' @return list(sim, sim_by_chr, n_features). sim has rownames = genoprobs_1 sample IDs,
 #'   colnames = genoprobs_2 sample IDs; each cell is the similarity between that pair.
 #' @export
 genoprobs_compute_similarity <- function(genoprobs_1, genoprobs_2,
-                                metric = c('pearson', 'cosine'),
+                                metric = c("pearson", "cosine"),
                                 by_chr = FALSE) {
     metric <- match.arg(metric)
 
@@ -84,7 +93,7 @@ genoprobs_compute_similarity <- function(genoprobs_1, genoprobs_2,
 
     common_chr <- intersect(names(genoprobs_1), names(genoprobs_2))
     if (length(common_chr) == 0) {
-        stop('No shared chromosomes between genoprobs_1 and genoprobs_2.')
+        stop("No shared chromosomes between genoprobs_1 and genoprobs_2.")
     }
 
     # Get sample IDs and counts from each object (first shared chr is enough;
@@ -112,7 +121,7 @@ genoprobs_compute_similarity <- function(genoprobs_1, genoprobs_2,
     p_tot <- 0L  # total features (markers * haplotypes) across all chr
 
     # Optional: per-chromosome similarity matrices (same layout as sim)
-    sim_by_chr <- if (by_chr) setNames(vector('list', length(common_chr)), common_chr) else NULL
+    sim_by_chr <- if (by_chr) setNames(vector("list", length(common_chr)), common_chr) else NULL
 
     # =========================================================================
     # STEP 3: Loop over chromosomes; accumulate cross-products and norms
@@ -128,29 +137,29 @@ genoprobs_compute_similarity <- function(genoprobs_1, genoprobs_2,
 
         # Flattened length = haplotypes * markers. We need same length in both.
         if (dim(A)[2] != dim(B)[2] || dim(A)[3] != dim(B)[3]) {
-            stop('Mismatch in haplotypes (dim 2) or markers (dim 3) for chr ', ch,
-                 '. Ensure both objects are aligned (same founders, same marker grid).')
+            stop("Mismatch in haplotypes (dim 2) or markers (dim 3) for chr ", ch,
+                 ". Ensure both objects are aligned (same founders, same marker grid).")
         }
         # Same identity and order of haplotypes and markers (fail fast if synced grid is violated).
         if (!is.null(dna[[2]]) && !is.null(dnb[[2]]) && !identical(dna[[2]], dnb[[2]])) {
-            stop('Haplotype dimnames differ on chr ', ch, '.')
+            stop("Haplotype dimnames differ on chr ", ch, ".")
         }
         if (!is.null(dna[[3]]) && !is.null(dnb[[3]]) && !identical(dna[[3]], dnb[[3]])) {
-            stop('Marker dimnames differ on chr ', ch, '.')
+            stop("Marker dimnames differ on chr ", ch, ".")
         }
 
         # Sample count and order must be consistent within each object across chromosomes.
         if (dim(A)[1] != n_a) {
-            stop('Sample count differs on chr ', ch, ' in genoprobs_1.')
+            stop("Sample count differs on chr ", ch, " in genoprobs_1.")
         }
         if (!is.null(dna[[1]]) && !identical(dna[[1]], sa)) {
-            stop('Sample order/names differ on chr ', ch, ' in genoprobs_1.')
+            stop("Sample order/names differ on chr ", ch, " in genoprobs_1.")
         }
         if (dim(B)[1] != n_b) {
-            stop('Sample count differs on chr ', ch, ' in genoprobs_2.')
+            stop("Sample count differs on chr ", ch, " in genoprobs_2.")
         }
         if (!is.null(dnb[[1]]) && !identical(dnb[[1]], sb)) {
-            stop('Sample order/names differ on chr ', ch, ' in genoprobs_2.')
+            stop("Sample order/names differ on chr ", ch, " in genoprobs_2.")
         }
 
         n_haplo  <- dim(A)[2]
@@ -174,7 +183,7 @@ genoprobs_compute_similarity <- function(genoprobs_1, genoprobs_2,
 
         # Optionally compute and store per-chromosome similarity matrix
         if (by_chr) {
-            if (metric == 'cosine') {
+            if (metric == "cosine") {
                 # Cosine = dot(a,b) / (||a|| * ||b||)
                 denom <- sqrt(st$sumx2 * st$sumy2)
                 denom[st$n_pair == 0 | denom == 0] <- NA_real_
@@ -204,7 +213,7 @@ genoprobs_compute_similarity <- function(genoprobs_1, genoprobs_2,
     # =========================================================================
     # Same formula as per-chr but using totals (p_tot, sumx, sumy, sumx2, sumy2, sumxy).
 
-    if (metric == 'cosine') {
+    if (metric == "cosine") {
         denom <- sqrt(sumx2 * sumy2)
         denom[n_pair == 0 | denom == 0] <- NA_real_
         sim <- sumxy / denom

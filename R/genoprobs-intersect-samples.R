@@ -26,7 +26,7 @@ genoprobs_intersect_samples <- function(genoprobs_1, genoprobs_2, sort = TRUE) {
     # Use only chromosomes present in both objects.
     common_chr <- intersect(names(genoprobs_1), names(genoprobs_2))
     if (!length(common_chr)) {
-        stop('No overlapping chromosomes between the two genoprobs objects.')
+        stop("No overlapping chromosomes between the two genoprobs objects.")
     }
 
     # Samples must appear on every shared chromosome in each object.
@@ -40,14 +40,14 @@ genoprobs_intersect_samples <- function(genoprobs_1, genoprobs_2, sort = TRUE) {
         common_chr
     )
     if (any(vapply(s1_per_chr, is.null, NA)) || any(vapply(s2_per_chr, is.null, NA))) {
-        stop('One or both genoprobs objects have NULL sample names on at least one chromosome.')
+        stop("One or both genoprobs objects have NULL sample names on at least one chromosome.")
     }
 
     common_in_1 <- Reduce(intersect, s1_per_chr)
     common_in_2 <- Reduce(intersect, s2_per_chr)
     common <- intersect(common_in_1, common_in_2)
     if (!length(common)) {
-        stop('No overlapping samples between the two genoprobs objects (after requiring samples to appear on all chromosomes).')
+        stop("No overlapping samples between the two genoprobs objects (after requiring samples to appear on all chromosomes).")
     }
 
     if (sort) {
@@ -62,12 +62,12 @@ genoprobs_intersect_samples <- function(genoprobs_1, genoprobs_2, sort = TRUE) {
 
     # Subset one genoprobs object to the common samples on the shared chromosomes.
     subset_to <- function(gp, samples) {
-        out <- setNames(vector('list', length(common_chr)), common_chr)
+        out <- setNames(vector("list", length(common_chr)), common_chr)
         for (chr in common_chr) {
             pr <- gp[[chr]]
             i <- match(samples, rownames(pr))
             if (anyNA(i)) {
-                stop('Sample missing on chromosome ', chr, '; ensure samples appear on all chromosomes.')
+                stop("Sample missing on chromosome ", chr, "; ensure samples appear on all chromosomes.")
             }
             out[[chr]] <- pr[i, , , drop = FALSE]
         }

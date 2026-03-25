@@ -15,18 +15,18 @@
 extract_chr_list <- function(genoprobs) {
     chrs <- names(genoprobs)
     if(is.null(chrs) || !length(chrs)) {
-        stop('genoprobs has no chromosome names; cannot extract.')
+        stop("genoprobs has no chromosome names; cannot extract.")
     }
 
     # build a plain list by extracting each chromosome with [[ ]] to avoid
     # subclass subsetting (e.g. [) that can alter structure or class
-    out <- setNames(vector('list', length(chrs)), chrs)
+    out <- setNames(vector("list", length(chrs)), chrs)
     for(chr in chrs) {
         out[[chr]] <- genoprobs[[chr]]
     }
 
     # make sure result is a plain list with no extra class
-    class(out) <- 'list'
+    class(out) <- "list"
     out
 }
 
@@ -42,12 +42,12 @@ extract_chr_list <- function(genoprobs) {
 detect_position_units_vec <- function(pos) {
     pos <- as.numeric(pos)
     pos <- pos[is.finite(pos)]
-    if(!length(pos)) stop('No finite positions found in vector')
+    if(!length(pos)) stop("No finite positions found in vector")
     # if max position < 2000, assume Mb (mouse chr in Mb); else assume bp
     if(max(pos, na.rm = TRUE) < 2000) {
-        'Mb'
+        "Mb"
     } else {
-        'bp'
+        "bp"
     }
 }
 
@@ -60,9 +60,9 @@ detect_position_units_vec <- function(pos) {
 #' @param pos_col Name of the position column.
 #'
 #' @return Character string \code{'Mb'} or \code{'bp'}.
-detect_position_units_df <- function(data, pos_col = 'pos') {
+detect_position_units_df <- function(data, pos_col = "pos") {
     if(!pos_col %in% names(data)) {
-        stop('Column not found: ', pos_col)
+        stop("Column not found: ", pos_col)
     }
     
     detect_position_units_vec(data[[pos_col]])
@@ -79,17 +79,17 @@ detect_position_units_df <- function(data, pos_col = 'pos') {
 #'
 #' @return Numeric vector of positions in bp.
 positions_vec_to_bp <- function(pos,
-                                unit = c('auto', 'Mb', 'bp')) {
+                                unit = c("auto", "Mb", "bp")) {
     unit <- match.arg(unit)
 
     pos <- as.numeric(pos)
 
     # auto: infer Mb vs bp from magnitude (max < 2000 => Mb)
-    if(unit == 'auto') {
+    if(unit == "auto") {
         unit <- detect_position_units_vec(pos)
     }
 
-    if(unit == 'Mb') {
+    if(unit == "Mb") {
         pos <- pos * 1e6
     }
     # 'bp' leaves pos unchanged

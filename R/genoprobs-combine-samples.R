@@ -30,7 +30,7 @@ genoprobs_combine_samples <- function(genoprobs_1,
                                       samples_1 = NULL,
                                       samples_2 = NULL,
                                       sort = TRUE,
-                                      duplicates = c('first', 'error')) {
+                                      duplicates = c("first", "error")) {
     duplicates <- match.arg(duplicates)
 
     # work with plain lists to avoid subclass subsetting issues when we
@@ -42,9 +42,9 @@ genoprobs_combine_samples <- function(genoprobs_1,
     chr1 <- names(gp1)
     chr2 <- names(gp2)
     if(!setequal(chr1, chr2)) {
-        stop(sprintf('Chromosome sets differ!\nOnly in genoprobs_1: %s\nOnly in genoprobs_2: %s',
-                     paste(setdiff(chr1, chr2), collapse = ', '),
-                     paste(setdiff(chr2, chr1), collapse = ', ')))
+        stop(sprintf("Chromosome sets differ!\nOnly in genoprobs_1: %s\nOnly in genoprobs_2: %s",
+                     paste(setdiff(chr1, chr2), collapse = ", "),
+                     paste(setdiff(chr2, chr1), collapse = ", ")))
     }
 
     # use a consistent chromosome order (from genoprobs_1); align gp2 to it.
@@ -55,10 +55,10 @@ genoprobs_combine_samples <- function(genoprobs_1,
     # combined arrays have identical structure
     for(chr in chrs) {
         if(!identical(colnames(gp1[[chr]]), colnames(gp2[[chr]]))) {
-            stop(sprintf('Founder/strain names differ on chr %s', chr))
+            stop(sprintf("Founder/strain names differ on chr %s", chr))
         }
         if(!identical(dimnames(gp1[[chr]])[[3]], dimnames(gp2[[chr]])[[3]])) {
-            stop(sprintf('Marker names/order differ on chr %s', chr))
+            stop(sprintf("Marker names/order differ on chr %s", chr))
         }
     }
 
@@ -67,7 +67,7 @@ genoprobs_combine_samples <- function(genoprobs_1,
     s1 <- rownames(gp1[[chr0]])
     s2 <- rownames(gp2[[chr0]])
     if(is.null(s1) || is.null(s2)) {
-        stop('One or both genoprobs objects have NULL sample names.')
+        stop("One or both genoprobs objects have NULL sample names.")
     }
 
     if(!is.null(samples_1)) {
@@ -78,17 +78,17 @@ genoprobs_combine_samples <- function(genoprobs_1,
     }
 
     if(!length(s1)) {
-        stop('No samples selected from genoprobs_1.')
+        stop("No samples selected from genoprobs_1.")
     }
     if(!length(s2)) {
-        stop('No samples selected from genoprobs_2.')
+        stop("No samples selected from genoprobs_2.")
     }
 
     # detect duplicates; error if user requested strict no-overlap.
     dup <- intersect(s1, s2)
-    if(length(dup) && duplicates == 'error') {
-        stop(sprintf('Duplicate samples found (%d). Example: %s',
-                     length(dup), paste(head(dup, 5), collapse = ', ')))
+    if(length(dup) && duplicates == "error") {
+        stop(sprintf("Duplicate samples found (%d). Example: %s",
+                     length(dup), paste(head(dup, 5), collapse = ", ")))
     }
 
     # if duplicates = 'first': keep all from 1, add from 2 only samples not in 1.
@@ -101,7 +101,7 @@ genoprobs_combine_samples <- function(genoprobs_1,
     }
 
     # build output list: one array per chromosome, filled from gp1 then gp2.
-    out <- setNames(vector('list', length(chrs)), chrs)
+    out <- setNames(vector("list", length(chrs)), chrs)
 
     for(chr in chrs) {
         pr1 <- gp1[[chr]]
@@ -136,7 +136,7 @@ genoprobs_combine_samples <- function(genoprobs_1,
     class(out) <- class(genoprobs_1)
 
     dropped_from_2_due_to_duplicates = character()
-    if(duplicates == 'first') {
+    if(duplicates == "first") {
         dropped_from_2_due_to_duplicates = dup
     }
 

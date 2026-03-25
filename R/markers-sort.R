@@ -11,21 +11,21 @@
 chr_rank <- function(chr) {
     x <- toupper(as.character(chr))
     # drop leading 'chr' for consistent comparison
-    x <- gsub('^CHR', '', x)
+    x <- gsub("^CHR", "", x)
 
     # normalize mitochondria naming so M/MTDNA/MITO all sort together
-    x[x %in% c('M', 'MTDNA', 'MITO')] <- 'MT'
+    x[x %in% c("M", "MTDNA", "MITO")] <- "MT"
 
     # numeric chromosomes (1-19) get their numeric value as rank
-    is_num <- grepl('^[0-9]+$', x)
+    is_num <- grepl("^[0-9]+$", x)
     r <- rep(NA_real_, length(x))
     r[is_num] <- as.numeric(x[is_num])
 
     # non-numeric chromosomes: fixed order after autosomes (X, Y, XY, MT)
-    r[x == 'X']  <- 1e6 + 1
-    r[x == 'Y']  <- 1e6 + 2
-    r[x == 'XY'] <- 1e6 + 3
-    r[x == 'MT'] <- 1e6 + 4
+    r[x == "X"]  <- 1e6 + 1
+    r[x == "Y"]  <- 1e6 + 2
+    r[x == "XY"] <- 1e6 + 3
+    r[x == "MT"] <- 1e6 + 4
 
     # any other contigs/scaffolds: rank after MT, stable order by alphabet
     other <- is.na(r)
@@ -53,8 +53,8 @@ chr_rank <- function(chr) {
 markers_sort <- function(markers) {
     markers <- resolve_col_markers(markers)
 
-    if(!all(c('marker_id', 'chr', 'pos') %in% names(markers))) {
-        stop('markers must contain \'marker_id\', \'chr\', and \'pos\'')
+    if(!all(c("marker_id", "chr", "pos") %in% names(markers))) {
+        stop("markers must contain 'marker_id', 'chr', and 'pos'")
     }
 
     # order by chromosome rank, then position, then marker name (ties deterministic)

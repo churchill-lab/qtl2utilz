@@ -2,12 +2,16 @@
 % Please edit documentation in R/aliases.R
 \name{fix_cols}
 \alias{fix_cols}
-\title{Wrapper around janitor::clean_names to standardize column names.
-Returns a standardized data.frame with cleaned column names.}
+\title{Standardize column names with janitor}
 \usage{
 fix_cols(df)
 }
+\arguments{
+\item{df}{A data frame.}
+}
+\value{
+\code{df} with syntactically consistent, lowercase snake_case names.
+}
 \description{
-Wrapper around janitor::clean_names to standardize column names.
-Returns a standardized data.frame with cleaned column names.
+Thin wrapper around \code{janitor::clean_names()}.
 }
