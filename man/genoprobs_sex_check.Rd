@@ -9,10 +9,10 @@ genoprobs_sex_check(genoprobs, x_chr = "X", ambig_margin = 0.03, seed = 1)
 \arguments{
 \item{genoprobs}{A \code{calc_genoprob} object (list of 3D arrays).}
 
-\item{x_chr}{Name of the X chromosome element (default \code{"X"}).}
+\item{x_chr}{Name of the X chromosome element (default \code{'X'}).}
 
 \item{ambig_margin}{Samples within this distance of the cluster boundary
-are labeled \code{"Ambiguous"} instead of M/F. Set to 0 to disable.}
+are labeled \code{'Ambiguous'} instead of M/F. Set to 0 to disable.}
 
 \item{seed}{Random seed for \code{kmeans}.}
 }
@@ -21,7 +21,7 @@ data.frame with columns:
   \describe{
     \item{sample}{Sample ID from genoprobs rownames.}
     \item{H_X}{Mean X-chromosome heterozygosity.}
-    \item{sex_call}{Called sex: \code{"M"}, \code{"F"}, or \code{"Ambiguous"}.}
+    \item{sex_call}{Called sex: \code{'M'}, \code{'F'}, or \code{'Ambiguous'}.}
     \item{cutoff}{Midpoint between the two cluster centers.}
     \item{margin}{Distance from the cutoff (larger = more confident).}
   }

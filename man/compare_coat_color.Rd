@@ -8,7 +8,7 @@ compare_coat_color(pheno, probs, map)
 }
 \arguments{
 \item{pheno}{data.frame with columns \code{id} (mouse ID) and \code{coat}
-(reported coat color: \code{"agouti"}, \code{"albino"}, \code{"black"},
+(reported coat color: \code{'agouti'}, \code{'albino'}, \code{'black'},
 or \code{NA}).}
 
 \item{probs}{qtl2-style allele probs. A named list with one element per

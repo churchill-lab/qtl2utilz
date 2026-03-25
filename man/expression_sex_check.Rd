@@ -17,7 +17,7 @@ expression_sex_check(
 \item{counts}{A samples-by-genes matrix of expression counts (raw or
 normalized). Column names must be Ensembl gene IDs.}
 
-\item{xist_id}{Ensembl ID for Xist (default \code{"ENSMUSG00000086503"}).}
+\item{xist_id}{Ensembl ID for Xist (default \code{'ENSMUSG00000086503'}).}
 
 \item{y_gene_ids}{Character vector of Y-linked gene Ensembl IDs to use
 for male-specific expression. Only genes present in
@@ -25,7 +25,7 @@ for male-specific expression. Only genes present in
 check entirely.}
 
 \item{ambig_margin}{Samples within this log2 distance of the cluster
-boundary are labeled \code{"Ambiguous"}.}
+boundary are labeled \code{'Ambiguous'}.}
 
 \item{seed}{Random seed for \code{kmeans}.}
 }

@@ -28,34 +28,34 @@ or the first \code{calc_genoprob} object.}
 \code{calc_genoprob}.}
 
 \item{sample_map}{Optional data.frame with columns
-\code{c("col_sample","row_sample")} describing expected pairings.
+\code{c('col_sample','row_sample')} describing expected pairings.
 If \code{NULL}, same-name mapping is used where available.}
 
 \item{metric}{Similarity metric for \code{calc_genoprob} inputs:
-\code{"pearson"} or \code{"cosine"}.}
+\code{'pearson'} or \code{'cosine'}.}
 
 \item{assignment_method}{One-to-one assignment strategy:
-\code{"greedy"} (always available) or \code{"hungarian"}.
-If \code{"hungarian"} is requested but package \pkg{clue} is unavailable,
-the function falls back to \code{"greedy"} and emits a warning.}
+\code{'greedy'} (always available) or \code{'hungarian'}.
+If \code{'hungarian'} is requested but package \pkg{clue} is unavailable,
+the function falls back to \code{'greedy'} and emits a warning.}
 
 \item{min_delta_best_labeled}{Minimum \code{best - labeled} to call a mismatch.}
 
 \item{min_delta_best_second}{Minimum \code{best - second} for confident calls.}
 
 \item{min_finite_per_col}{Minimum number of finite similarities required to
-consider a column evaluable; otherwise \code{"no_call"}.}
+consider a column evaluable; otherwise \code{'no_call'}.}
 
 \item{min_z_best}{Minimum z-score of best-vs-background for confidence.}
 
 \item{max_empirical_p_best}{Maximum empirical tail probability for confidence.}
 
-\item{near_tie_gap}{Gap to define "near ties" to the best value, used for
+\item{near_tie_gap}{Gap to define 'near ties' to the best value, used for
 mixture/ambiguity diagnostics.}
 
-\item{allow_no_call}{If \code{TRUE}, low-information columns become \code{"no_call"}.
-If \code{FALSE}, they are labeled \code{"unmapped"} for compatibility with
-older workflows that do not expect \code{"no_call"}.}
+\item{allow_no_call}{If \code{TRUE}, low-information columns become \code{'no_call'}.
+If \code{FALSE}, they are labeled \code{'unmapped'} for compatibility with
+older workflows that do not expect \code{'no_call'}.}
 
 \item{...}{Reserved for forward compatibility.}
 }
@@ -80,19 +80,19 @@ data.frame with one row per column sample and columns:
   \item{global_row_sample}{Row assigned by global one-to-one assignment.}
   \item{assignment_consistent}{Whether global assignment equals local best.}
   \item{flag}{One of:
-    \code{"match_confident"},
-    \code{"match_ambiguous"},
-    \code{"mismatch_confident"},
-    \code{"mismatch_ambiguous"},
-    \code{"possible_mixture"},
-    \code{"no_call"},
-    \code{"unmapped"}.}
+    \code{'match_confident'},
+    \code{'match_ambiguous'},
+    \code{'mismatch_confident'},
+    \code{'mismatch_ambiguous'},
+    \code{'possible_mixture'},
+    \code{'no_call'},
+    \code{'unmapped'}.}
   \item{swap_group_id}{ID of connected mismatch group (if any).}
-  \item{swap_group_type}{\code{"pair"}, \code{"cycle"}, or \code{"complex"}.}
+  \item{swap_group_type}{\code{'pair'}, \code{'cycle'}, or \code{'complex'}.}
 }
 }
 \description{
-\code{genoprobs_detect_sample_swaps()} is a "max robustness" reference
+\code{genoprobs_detect_sample_swaps()} is a 'max robustness' reference
 implementation for sample identity QC between two sample sets. It interprets
 the input similarity matrix in a **column‑centric, query‑vs‑reference**
 fashion:
@@ -102,16 +102,16 @@ fashion:
 
 For each **column sample** (query), it asks:
 
-> "Which reference sample (row) is my best match, how different is that from
+> 'Which reference sample (row) is my best match, how different is that from
 > my expected label, and is the evidence strong enough to confidently call
-> a match, mismatch, or mixture?"
+> a match, mismatch, or mixture?'
 
 The function is intentionally conservative and explicit:
 \itemize{
   \item It keeps the familiar local evidence (best vs. second; best vs. expected).
   \item It adds empirical calibration (z-score and empirical tail probability).
   \item It adds one-to-one global assignment (greedy by default; Hungarian if \pkg{clue} is available).
-  \item It marks low-information columns as \code{"no_call"} instead of forcing decisions.
+  \item It marks low-information columns as \code{'no_call'} instead of forcing decisions.
   \item It annotates swap groups beyond simple reciprocal pairs.
 }
 
@@ -138,7 +138,7 @@ You may provide either:
     }
 }
 
-In all cases, similarity must satisfy "larger means more similar"
+In all cases, similarity must satisfy 'larger means more similar'
 (e.g. Pearson/cosine), and the resulting matrix is treated as
 \code{rows = reference}, \code{cols = query}.
 }
@@ -152,7 +152,7 @@ For each **column sample** (i.e. each query sample) the function:
         or same‑ID default).
   \item Estimates whether the best is exceptional relative to that column's
         background (z‑score, empirical p‑value).
-  \item Applies confidence-aware flags; may emit \code{"no_call"} instead of
+  \item Applies confidence-aware flags; may emit \code{'no_call'} instead of
         forcing a decision on weak evidence.
   \item Optionally compares the local best with a global one-to-one
         assignment (so that each reference is used at most once).
@@ -162,11 +162,11 @@ For each **column sample** (i.e. each query sample) the function:
 \examples{
 \dontrun{
 # Similarity matrix input
-sim_res <- genoprobs_compute_similarity(gp_a, gp_b, metric = "pearson")
+sim_res <- genoprobs_compute_similarity(gp_a, gp_b, metric = 'pearson')
 out <- genoprobs_detect_sample_swaps(
   sim_res$sim,
   sample_map = sample_map,
-  assignment_method = "hungarian"
+  assignment_method = 'hungarian'
 )
 
 # calc_genoprob input (computes similarity first)
@@ -174,7 +174,7 @@ out2 <- genoprobs_detect_sample_swaps(
   gp_a,
   genoprobs_2 = gp_b,
   sample_map = sample_map,
-  metric = "cosine"
+  metric = 'cosine'
 )
 }
 }

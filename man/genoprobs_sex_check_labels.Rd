@@ -19,24 +19,24 @@ column (e.g. from \code{\link{genoprobs_sex_check}}).}
 \item{labeled_sex}{Sex labels for each sample. Can be one of:
 \itemize{
   \item A named character vector where names are sample IDs and values
-    are \code{"F"} or \code{"M"} (or \code{NA}).
+    are \code{'F'} or \code{'M'} (or \code{NA}).
   \item A data.frame with columns \code{sample} (or matching the value
     of \code{sample_col}) and \code{sex} (or matching \code{sex_label_col}).
 }}
 
 \item{sex_col}{Name of the column in \code{sex_df} containing the
-computed sex call (default \code{"sex_call"}).}
+computed sex call (default \code{'sex_call'}).}
 
 \item{sample_col}{If \code{labeled_sex} is a data.frame, the column name
-containing sample IDs (default \code{"sample"}).}
+containing sample IDs (default \code{'sample'}).}
 
 \item{sex_label_col}{If \code{labeled_sex} is a data.frame, the column name
-containing the sex label (default \code{"sex"}).}
+containing the sex label (default \code{'sex'}).}
 }
 \value{
 The input data.frame with added columns:
   \describe{
-    \item{sex_label}{Sex label from metadata (\code{"F"}, \code{"M"}, or NA).}
+    \item{sex_label}{Sex label from metadata (\code{'F'}, \code{'M'}, or NA).}
     \item{sex_concordant}{Logical: TRUE if \code{sex_col} matches
       \code{sex_label}. NA if either is missing or Ambiguous.}
   }

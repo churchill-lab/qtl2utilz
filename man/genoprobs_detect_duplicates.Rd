@@ -14,14 +14,14 @@ genoprobs_detect_duplicates(
 \arguments{
 \item{genoprobs}{A \code{calc_genoprob} object.}
 
-\item{exclude_chr}{Chromosomes to exclude (e.g. \code{"X"} to avoid
+\item{exclude_chr}{Chromosomes to exclude (e.g. \code{'X'} to avoid
 sex-chromosome effects inflating similarity for same-sex pairs).
 Default \code{NULL} uses all chromosomes.}
 
 \item{threshold}{Minimum Pearson correlation to flag a pair as a potential
 duplicate. Default 0.9.}
 
-\item{metric}{Similarity metric: \code{"pearson"} or \code{"cosine"}.}
+\item{metric}{Similarity metric: \code{'pearson'} or \code{'cosine'}.}
 }
 \value{
 A list with:
@@ -48,7 +48,7 @@ Duplicate samples (two tubes containing DNA from the same mouse) cannot
 be detected by the swap-detection pipeline, which compares a query dataset
 against a reference. Duplicates appear as two samples that both match the
 same reference identity — or as very-similar samples that the swap detector
-marks \code{"match_ambiguous"} without raising an alarm. A dedicated
+marks \code{'match_ambiguous'} without raising an alarm. A dedicated
 within-dataset pairwise check catches these cases.
 }
 
