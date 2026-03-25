@@ -75,7 +75,7 @@
 #'   dataset‑1 sample).
 #'
 #' @export
-summarize_correlation_matrix_new <- function(cor_mat) {
+summarize_correlation_matrix <- function(cor_mat) {
     if (!is.matrix(cor_mat)) {
         stop("cor_mat must be a matrix.")
     }
