@@ -32,7 +32,7 @@ genoprobs_sex_check <- function(genoprobs, x_chr = "X",
     hx <- .hx_from_genoprobs(genoprobs[[x_chr]])
 
     set.seed(seed)
-    km <- kmeans(as.numeric(hx), centers = 2)
+    km <- stats::kmeans(as.numeric(hx), centers = 2)
 
     centers <- tapply(as.numeric(hx), km$cluster, mean, na.rm = TRUE)
     male_cluster <- as.integer(names(which.min(centers)))

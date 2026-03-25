@@ -56,7 +56,7 @@ expression_sex_check <- function(
     }
 
     set.seed(seed)
-    km <- kmeans(x_vals, centers = 2)
+    km <- stats::kmeans(x_vals, centers = 2)
 
     centers <- tapply(x_vals, km$cluster, mean)
     male_cluster <- as.integer(names(which.min(centers)))
@@ -82,7 +82,7 @@ expression_sex_check <- function(
 
         if (length(unique(y_mean_log2[is.finite(y_mean_log2)])) >= 2) {
             set.seed(seed)
-            km_y <- kmeans(y_mean_log2, centers = 2)
+            km_y <- stats::kmeans(y_mean_log2, centers = 2)
             centers_y <- tapply(y_mean_log2, km_y$cluster, mean)
             male_cluster_y <- as.integer(names(which.max(centers_y)))
 

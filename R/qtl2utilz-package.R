@@ -19,4 +19,12 @@
 #' @section Other utilities:
 #' \code{\link{positions_to_bp}}, \code{\link{markers_sort}}, \code{\link{rank_z}}
 #'
+#' @importFrom rlang enquo
+#' @importFrom stats setNames
+#' @importFrom utils head read.delim read.table
+#'
 "_PACKAGE"
+
+.onLoad <- function(libname, pkgname) {
+    utils::globalVariables(c("locus", "total"))
+}

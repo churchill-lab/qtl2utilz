@@ -28,13 +28,13 @@
     candidates <- unique(aliases[[key]])
     norm_candidates <- unique(.normalize_col_token(candidates))
     norm_names <- .normalize_col_token(names(df))
-    hit_idx <- which(norm_names %in% norm_candidates)
-    hits <- names(df)[hit_idx]
 
-    if (length(hits) == 1) {
-        hits
-    }
-    if (length(hits) == 0) {
+    # Match on normalized tokens so e.g. mouse_id and mouse.id count as one column;
+    # ambiguity only if two *different* tokens both match (e.g. sample and mouse_id).
+    hit_mask <- norm_names %in% norm_candidates
+    matched_tokens <- unique(norm_names[hit_mask])
+
+    if (length(matched_tokens) == 0L) {
         stop(
             "Missing column for '", key, "'. Accepted aliases: ",
             paste(candidates, collapse = ", "),
@@ -42,11 +42,18 @@
         )
     }
 
-    stop(
-        "Ambiguous columns for '", key, "': ",
-        paste(hits, collapse = ", "),
-        ". Keep only one of these aliases."
-    )
+    if (length(matched_tokens) > 1L) {
+        hit_names <- unique(names(df)[hit_mask])
+        stop(
+            "Ambiguous columns for '", key, "': ",
+            paste(hit_names, collapse = ", "),
+            ". Keep only one of these aliases."
+        )
+    }
+
+    tok <- matched_tokens[[1L]]
+    idx <- which(norm_names == tok)
+    names(df)[idx[[1L]]]
 }
 
 #' Resolve and normalize sample key column to canonical sample_id

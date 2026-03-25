@@ -9,3 +9,8 @@
 ^NEW$
 ^test_files$
 ^tmp$
+^\.cursorignore$
+^\.cursor$
+^\.github$
+^Rplot\.png$
+^scripts$
