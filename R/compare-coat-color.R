@@ -1,18 +1,3 @@
-################################################################################
-# Test inferred genotype at coat color loci versus reported coat color for
-# Diversity Outbred mice.
-# Users must report the coat color as 'agouti', 'albino', or 'black'.
-# Indeterminate coat colors may be coded as NA.
-# We only use the allele probs at the agouti locus on Chr 2 and the tyrosinase
-# locus on Chr 7. Coordinates in GRCm39.
-# Albino is epistatic (i.e. masks) to black. So test the albino locus
-# first and the agouti locus second.
-#
-# 2025-05-23
-################################################################################
-
-
-
 #' Call the most probable marginal diplotype at a single marker.
 #'
 #' Originally written by Daniel Gatti (dan.gatti@jax.org).

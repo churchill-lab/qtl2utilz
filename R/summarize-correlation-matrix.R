@@ -75,7 +75,7 @@
 #'   dataset‑1 sample).
 #'
 #' @export
-summarize_correlation_matrix <- function(cor_mat) {
+summarize_correlation_matrix_new <- function(cor_mat) {
     if (!is.matrix(cor_mat)) {
         stop("cor_mat must be a matrix.")
     }
@@ -99,33 +99,46 @@ summarize_correlation_matrix <- function(cor_mat) {
     expected_col_index <- match(row_ids, col_ids)
 
     #
-    # get best overall match (row-wise maximum)
+    # get best and second-best match using only finite values
     #
-    # max.col() finds the column index of the maximum value for each row
+    # max.col() can return NA if a row contains NA values; for robust behavior
+    # we compute top-1/top-2 per row from finite entries only.
     #
-    best_col_index <- max.col(cor_mat, ties.method = "first")
+    best_col_index <- rep(NA_integer_, n_rows)
+    second_col_index <- rep(NA_integer_, n_rows)
+    best_score <- rep(NA_real_, n_rows)
+    second_score <- rep(NA_real_, n_rows)
 
-    best_score <- cor_mat[cbind(seq_len(n_rows), best_col_index)]
-    best_match <- col_ids[best_col_index]
+    for (i in seq_len(n_rows)) {
+        row_vals <- cor_mat[i, ]
+        finite_idx <- which(is.finite(row_vals))
+        if (!length(finite_idx)) next
 
-    #
-    # get second-best match
-    #
-    # to obtain the second-highest value without sorting:
-    #   - temporarily mask the best value in each row
-    #   - recompute max.col() on the modified matrix
-    #
-    cor_masked_best <- cor_mat
-    cor_masked_best[cbind(seq_len(n_rows), best_col_index)] <- -Inf
+        # ties.method='first' behavior: pick first max in column order.
+        k_best <- finite_idx[which.max(row_vals[finite_idx])]
+        best_col_index[i] <- k_best
+        best_score[i] <- row_vals[k_best]
 
-    second_col_index <- max.col(cor_masked_best, ties.method = "first")
-    second_score <- cor_masked_best[cbind(seq_len(n_rows), second_col_index)]
-    second_match <- col_ids[second_col_index]
+        if (length(finite_idx) >= 2L) {
+            row_vals2 <- row_vals
+            row_vals2[k_best] <- -Inf
+            finite_idx2 <- which(is.finite(row_vals2))
+            if (length(finite_idx2)) {
+                k_second <- finite_idx2[which.max(row_vals2[finite_idx2])]
+                second_col_index[i] <- k_second
+                second_score[i] <- row_vals2[k_second]
+            }
+        }
+    }
 
-    # replace invalid (-Inf) second scores with NA
-    invalid_second <- !is.finite(second_score)
-    second_score[invalid_second] <- NA_real_
-    second_match[invalid_second] <- NA_character_
+    best_match <- rep(NA_character_, n_rows)
+    has_best <- !is.na(best_col_index)
+    best_match[has_best] <- col_ids[best_col_index[has_best]]
+
+    second_match <- rep(NA_character_, n_rows)
+    has_second <- !is.na(second_col_index) & is.finite(second_score)
+    second_match[has_second] <- col_ids[second_col_index[has_second]]
+    second_score[!has_second] <- NA_real_
 
     #
     # get expected (diagonal) score
@@ -148,22 +161,16 @@ summarize_correlation_matrix <- function(cor_mat) {
     best_nonself_score <- rep(NA_real_, n_rows)
 
     if (any(has_expected)) {
-        cor_masked_diag <- cor_mat
-        cor_masked_diag[cbind(which(has_expected),
-                              expected_col_index[has_expected])] <- -Inf
+        for (i in which(has_expected)) {
+            row_vals <- cor_mat[i, ]
+            row_vals[expected_col_index[i]] <- -Inf
+            finite_idx <- which(is.finite(row_vals))
+            if (!length(finite_idx)) next
 
-        best_nonself_col_index <- max.col(cor_masked_diag,
-                                          ties.method = "first")
-
-        best_nonself_score <-
-            cor_masked_diag[cbind(seq_len(n_rows),
-                                  best_nonself_col_index)]
-
-        best_nonself_match <- col_ids[best_nonself_col_index]
-
-        invalid_ns <- !is.finite(best_nonself_score)
-        best_nonself_score[invalid_ns] <- NA_real_
-        best_nonself_match[invalid_ns] <- NA_character_
+            k <- finite_idx[which.max(row_vals[finite_idx])]
+            best_nonself_score[i] <- row_vals[k]
+            best_nonself_match[i] <- col_ids[k]
+        }
     }
 
     #
