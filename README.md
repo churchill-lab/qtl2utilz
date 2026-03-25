@@ -50,9 +50,9 @@ gbrs_on_muga <- genoprobs_interpolate(gbrs$genoprobs, gbrs$map, muga$map)
 # 3) Restrict to common samples
 aligned <- genoprobs_sync_samples(gbrs_on_muga, muga$genoprobs)
 
-# 4) Per-sample correlation (QC)
-cor_tbl <- genoprobs_correlate(aligned$genoprobs_1, aligned$genoprobs_2)
-summary(cor_tbl$correlation)
+# 4) Compute similarity matrix (QC)
+sim_mat <- genoprobs_compute_similarity(aligned$genoprobs_1, aligned$genoprobs_2)
+summary(diag(sim_mat))
 ```
 
 ## Documentation

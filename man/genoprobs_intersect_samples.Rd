@@ -23,8 +23,9 @@ A list with components:
 }
 \description{
 Subset both genoprobs objects to their common samples (and optionally
-sort sample order). Useful before \code{genoprobs_correlate} or other
-comparisons so that both objects have the same samples in the same order.
+sort sample order). Useful before \code{\link{genoprobs_compute_similarity}}
+or other comparisons so that both objects have the same samples in the same
+order.
 }
 \details{
 Only overlapping chromosomes are considered. A sample is included only if it

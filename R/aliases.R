@@ -49,18 +49,18 @@
     )
 }
 
-# Resolve and normalize sample key column to canonical sample_id.
-# Returns a data.frame with the renamed column.
-# @keywords internal
+#' Resolve and normalize sample key column to canonical sample_id.
+#' Returns a data.frame with the renamed column.
+#' @export
 resolve_col_samples <- function(df) {
     sample_col <- .resolve_col(df, 'sample_id')
     names(df)[names(df) == sample_col] <- 'sample_id'
     df
 }
 
-# Resolve and normalize marker/map key columns to canonical names.
-# Returns a data.frame with marker_id, chr, and pos column names.
-# @keywords internal
+#' Resolve and normalize marker/map key columns to canonical names.
+#' Returns a data.frame with marker_id, chr, and pos column names.
+#' @export
 resolve_col_markers <- function(df) {
     marker_col <- .resolve_col(df, 'marker_id')
     chr_col <- .resolve_col(df, 'chr')
@@ -71,3 +71,11 @@ resolve_col_markers <- function(df) {
     names(df)[names(df) == pos_col] <- 'pos'
     df
 }
+
+#' Wrapper around janitor::clean_names to standardize column names.
+#' Returns a standardized data.frame with cleaned column names.
+#' @export
+fix_cols <- function(df) {
+    janitor::clean_names(df)
+}
+

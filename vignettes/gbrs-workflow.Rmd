@@ -75,9 +75,9 @@ gbrs_on_muga <- genoprobs_interpolate(gbrs$genoprobs, gbrs$map, muga$map)
 # 3) Restrict to common samples (same order)
 aligned <- genoprobs_sync_samples(gbrs_on_muga, muga$genoprobs)
 
-# 4) Per-sample correlation
-cor_tbl <- genoprobs_correlate(aligned$genoprobs_1, aligned$genoprobs_2)
-# Samples with correlation < 0.8 are flagged in cor_tbl$flag_low
+# 4) Compute similarity matrix
+sim_mat <- genoprobs_compute_similarity(aligned$genoprobs_1, aligned$genoprobs_2)
+# Diagonal values are self-similarity; off-diagonal reveal potential swaps
 ```
 
 ## Utility Functions
@@ -115,11 +115,11 @@ markers_sort(df)
 
 ### Rank-based inverse normal transformation
 
-`rankZ()` transforms skewed phenotype or expression data for QTL mapping:
+`rank_z()` transforms skewed phenotype or expression data for QTL mapping:
 
-```{r rankZ}
+```{r rank-z}
 x <- c(1, 5, 3, 2, 4)
-rankZ(x)
+rank_z(x)
 ```
 
 ## Column aliases

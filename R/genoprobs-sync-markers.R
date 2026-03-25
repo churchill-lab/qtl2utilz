@@ -31,7 +31,7 @@ genoprobs_sync_markers <- function(genoprobs,
     markers_df <- resolve_col_markers(markers_df)
 
     if(!all(c('marker_id', 'chr', 'pos') %in% names(markers_df))) {
-        stop('markers_df must contain "marker_id", "chr", and "pos"')
+        stop('markers_df must contain \'marker_id\', \'chr\', and \'pos\'')
     }
 
     # extract a plain list of chr arrays so subsetting [common_chr] is safe

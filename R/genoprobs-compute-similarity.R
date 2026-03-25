@@ -1,6 +1,6 @@
 #' Extract sample names from a calc_genoprob object
 #' @keywords internal
-get_gp_samples <- function(gp, chr = NULL) {
+get_genoprobs_samples <- function(gp, chr = NULL) {
     if (is.null(chr)) chr <- names(gp)[1]
     dn <- dimnames(gp[[chr]])
     if (is.null(dn) || length(dn) < 1 || is.null(dn[[1]])) {
@@ -89,8 +89,8 @@ genoprobs_compute_similarity <- function(genoprobs_1, genoprobs_2,
 
     # Get sample IDs and counts from each object (first shared chr is enough;
     # order/names can differ between genoprobs_1 and genoprobs_2).
-    sa <- get_gp_samples(genoprobs_1, common_chr[1])
-    sb <- get_gp_samples(genoprobs_2, common_chr[1])
+    sa <- get_genoprobs_samples(genoprobs_1, common_chr[1])
+    sb <- get_genoprobs_samples(genoprobs_2, common_chr[1])
     n_a <- length(sa)
     n_b <- length(sb)
 

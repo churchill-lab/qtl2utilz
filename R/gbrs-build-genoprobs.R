@@ -51,23 +51,23 @@ gbrs_build_genoprobs <- function(gbrs_files_tbl, markers) {
     gbrs_files_tbl <- resolve_col_samples(gbrs_files_tbl)
     markers <- resolve_col_markers(markers)
 
-    if(!all(c('sample_id', 'full_path_genoprobs') %in% names(gbrs_files_tbl))) {
-        stop("gbrs_files_tbl must contain 'sample_id' and 'full_path_genoprobs'")
+    if (!all(c('sample_id', 'full_path_genoprobs') %in% names(gbrs_files_tbl))) {
+        stop('gbrs_files_tbl must contain \'sample_id\' and \'full_path_genoprobs\'')
     }
-    if(nrow(gbrs_files_tbl) == 0) {
-        stop("gbrs_files_tbl has 0 rows; no genoprobs files to read.")
+    if (nrow(gbrs_files_tbl) == 0) {
+        stop('gbrs_files_tbl has 0 rows; no genoprobs files to read.')
     }
-    if(anyDuplicated(gbrs_files_tbl$sample_id)) {
-        stop("gbrs_files_tbl has duplicated sample_id values.")
+    if (anyDuplicated(gbrs_files_tbl$sample_id)) {
+        stop('gbrs_files_tbl has duplicated sample_id values.')
     }
-    if(!all(c('marker_id', 'chr', 'pos') %in% names(markers))) {
-        stop("markers must contain 'marker_id', 'chr', and 'pos'")
+    if (!all(c('marker_id', 'chr', 'pos') %in% names(markers))) {
+        stop('markers must contain \'marker_id\', \'chr\', and \'pos\'')
     }
-    if(nrow(markers) == 0) {
-        stop("markers has 0 rows; no markers available.")
+    if (nrow(markers) == 0) {
+        stop('markers has 0 rows; no markers available.')
     }
-    if(anyDuplicated(markers$marker_id)) {
-        stop("markers has duplicated marker_id values.")
+    if (anyDuplicated(markers$marker_id)) {
+        stop('markers has duplicated marker_id values.')
     }
 
     # read in the probabilities
@@ -91,11 +91,11 @@ gbrs_build_genoprobs <- function(gbrs_files_tbl, markers) {
             nrow(x) == n_markers &&
             ncol(x) == 8
     }, logical(1))]
-    if(length(bad_shape) > 0) {
+    if (length(bad_shape) > 0) {
         stop(
-            "Genoprobs files have unexpected dimensions for samples: ",
-            paste(bad_shape, collapse = ", "),
-            ". Expected ", n_markers, " rows (markers) and 8 columns (founders A-H)."
+            'Genoprobs files have unexpected dimensions for samples: ',
+            paste(bad_shape, collapse = ', '),
+            '. Expected ', n_markers, ' rows (markers) and 8 columns (founders A-H).'
         )
     }
 

@@ -54,7 +54,7 @@ markers_sort <- function(markers) {
     markers <- resolve_col_markers(markers)
 
     if(!all(c('marker_id', 'chr', 'pos') %in% names(markers))) {
-        stop('markers must contain "marker_id", "chr", and "pos"')
+        stop('markers must contain \'marker_id\', \'chr\', and \'pos\'')
     }
 
     # order by chromosome rank, then position, then marker name (ties deterministic)

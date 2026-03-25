@@ -10,7 +10,7 @@
 #'   \code{x} was \code{NA}, otherwise normal quantiles.
 #'
 #' @export
-rankZ <- function(x) {
+rank_z <- function(x) {
     x <- rank(x, na.last = 'keep', ties.method = 'average') / (sum(!is.na(x)) + 1)
     qnorm(x)
 }

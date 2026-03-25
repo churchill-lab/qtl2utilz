@@ -1,8 +1,9 @@
 #' Intersect samples across two genoprobs objects.
 #'
 #' Subset both genoprobs objects to their common samples (and optionally
-#' sort sample order). Useful before \code{genoprobs_correlate} or other
-#' comparisons so that both objects have the same samples in the same order.
+#' sort sample order). Useful before \code{\link{genoprobs_compute_similarity}}
+#' or other comparisons so that both objects have the same samples in the same
+#' order.
 #'
 #' @param genoprobs_1 First qtl2-style genoprobs object.
 #' @param genoprobs_2 Second qtl2-style genoprobs object.
