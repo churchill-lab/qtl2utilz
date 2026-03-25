@@ -26,11 +26,11 @@
 #' @export
 genoprobs_sync_markers <- function(genoprobs,
                                    markers_df,
-                                   unit       = c('auto','Mb','bp')) {
+                                   unit = c('auto', 'Mb', 'bp')) {
     unit <- match.arg(unit)
     markers_df <- resolve_col_markers(markers_df)
 
-    if(!all(c('marker_id', 'chr', 'pos') %in% names(markers_df))) {
+    if (!all(c('marker_id', 'chr', 'pos') %in% names(markers_df))) {
         stop('markers_df must contain \'marker_id\', \'chr\', and \'pos\'')
     }
 
@@ -51,40 +51,39 @@ genoprobs_sync_markers <- function(genoprobs,
 
     # restrict to chromosomes present in both; plain list subsetting is safe here
     common_chr <- intersect(names(genoprobs_list), names(map))
-    if(!length(common_chr)) {
+    if (!length(common_chr)) {
         stop('No overlapping chromosome names between genoprobs and markers/map.')
     }
 
     out <- genoprobs_list[common_chr]
 
-    dropped_markers_not_in_gp  <- list()
+    dropped_markers_not_in_gp <- list()
     dropped_markers_not_in_map <- list()
 
-    # per chromosome: keep only markers that appear in both, in map order
-    for(chr in common_chr) {
-
+    # Keep only markers that appear in both objects, preserving map order.
+    for (chr in common_chr) {
         pr <- out[[chr]]
-        if(length(dim(pr)) != 3) {
+        if (length(dim(pr)) != 3) {
             stop(sprintf('Chr %s genoprobs is not a 3D array.', chr))
         }
 
         gp_markers <- dimnames(pr)[[3]]
-        if(is.null(gp_markers)) {
+        if (is.null(gp_markers)) {
             stop(sprintf('Chr %s genoprobs has NULL marker dimnames.', chr))
         }
 
         map_markers <- names(map[[chr]])
-        if(is.null(map_markers)) {
+        if (is.null(map_markers)) {
             stop(sprintf('Chr %s map has NULL names().', chr))
         }
 
         # keep markers in map order (sorted by chr/pos already); only those in genoprobs too
         keep <- map_markers[map_markers %in% gp_markers]
 
-        dropped_markers_not_in_gp[[chr]]  <- setdiff(map_markers, gp_markers)
+        dropped_markers_not_in_gp[[chr]] <- setdiff(map_markers, gp_markers)
         dropped_markers_not_in_map[[chr]] <- setdiff(gp_markers, map_markers)
 
-        if(!length(keep)) {
+        if (!length(keep)) {
             stop(sprintf('Chr %s has zero overlapping markers between genoprobs and markers_df.', chr))
         }
 
@@ -92,7 +91,9 @@ genoprobs_sync_markers <- function(genoprobs,
         out[[chr]] <- pr[, , idx, drop = FALSE]
         map[[chr]] <- map[[chr]][keep]
 
-        stopifnot(identical(dimnames(out[[chr]])[[3]], names(map[[chr]])))
+        if (!identical(dimnames(out[[chr]])[[3]], names(map[[chr]]))) {
+            stop(sprintf('Chr %s marker names do not align after subsetting.', chr))
+        }
     }
 
     # restore original attributes/class so result behaves like input genoprobs
@@ -101,7 +102,7 @@ genoprobs_sync_markers <- function(genoprobs,
 
     # subset markers to only those present in genoprobs/map (same set per chr)
     kept_rows <- logical(nrow(markers_bp))
-    for(chr in common_chr) {
+    for (chr in common_chr) {
         kept_rows <- kept_rows | (
             markers_bp$chr == chr &
             markers_bp$marker_id %in% names(map[[chr]])

@@ -6,9 +6,9 @@
 #' produces a tidy, *row-centric* summary. Each output row corresponds to one
 #' row of the input matrix (one sample from dataset 1) and answers the question:
 #'
-#' > "For this dataset‑1 sample (row), how well does it match its expected
+#' > 'For this dataset‑1 sample (row), how well does it match its expected
 #' > counterpart in dataset 2 (diagonal), and which dataset‑2 sample is its
-#' > best overall match (row‑wise maximum)?"
+#' > best overall match (row‑wise maximum)?'
 #'
 #' This is useful for quality control, especially for detecting potential sample
 #' swaps or mixups from the **dataset‑1 perspective**.
@@ -68,15 +68,17 @@
 #' }
 #'
 #' @param cor_mat Numeric similarity / correlation matrix with rownames and
-#'   colnames. Rows are interpreted as "dataset‑1 samples", columns as
-#'   "dataset‑2 samples". The matrix need not be symmetric.
+#'   colnames. Rows are interpreted as 'dataset‑1 samples', columns as
+#'   'dataset‑2 samples'. The matrix need not be symmetric.
 #'
 #' @return A tibble with one row per **row** in \code{cor_mat} (one per
 #'   dataset‑1 sample).
 #'
 #' @export
 summarize_correlation_matrix_new <- function(cor_mat) {
-    stopifnot(is.matrix(cor_mat))
+    if (!is.matrix(cor_mat)) {
+        stop('cor_mat must be a matrix.')
+    }
 
     row_ids <- rownames(cor_mat)
     col_ids <- colnames(cor_mat)

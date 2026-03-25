@@ -23,7 +23,6 @@ genoprobs_compare <- function(genoprobs_1,
                               genoprobs_2,
                               tol = 1e-10,
                               compare_values = TRUE) {
-
     gp1 <- extract_chr_list(genoprobs_1)
     gp2 <- extract_chr_list(genoprobs_2)
 
@@ -32,7 +31,8 @@ genoprobs_compare <- function(genoprobs_1,
     chr_only_1 <- setdiff(chr1, chr2)
     chr_only_2 <- setdiff(chr2, chr1)
     chr_common <- intersect(chr1, chr2)
-    chr_order_match <- length(chr_common) > 0 && identical(chr1[chr1 %in% chr_common], chr2[chr2 %in% chr_common])
+    chr_order_match <- length(chr_common) > 0 &&
+        identical(chr1[chr1 %in% chr_common], chr2[chr2 %in% chr_common])
 
     chromosomes <- list(
         in_1 = chr1,
@@ -43,18 +43,18 @@ genoprobs_compare <- function(genoprobs_1,
         order_match = chr_order_match
     )
 
-    # compare attributes
+    # Compare qtl2 attributes.
     attrs <- c('crosstype', 'is_x_chr', 'alleles', 'alleleprobs')
     attr_compare <- list()
-    for(a in attrs) {
+    for (a in attrs) {
         v1 <- attr(genoprobs_1, a, exact = TRUE)
         v2 <- attr(genoprobs_2, a, exact = TRUE)
         attr_compare[[a]] <- list(
             in_1 = !is.null(v1),
             in_2 = !is.null(v2),
-            match = if(is.null(v1) && is.null(v2)) TRUE else identical(v1, v2)
+            match = if (is.null(v1) && is.null(v2)) TRUE else identical(v1, v2)
         )
-        if(!attr_compare[[a]]$match && !is.null(v1) && !is.null(v2)) {
+        if (!attr_compare[[a]]$match && !is.null(v1) && !is.null(v2)) {
             attr_compare[[a]]$value_1 <- v1
             attr_compare[[a]]$value_2 <- v2
         }
@@ -64,27 +64,27 @@ genoprobs_compare <- function(genoprobs_1,
     by_chr <- setNames(vector('list', length(chr_common)), chr_common)
     summary_lines <- character()
 
-    for(chr in chr_common) {
+    for (chr in chr_common) {
         pr1 <- gp1[[chr]]
         pr2 <- gp2[[chr]]
 
-        if(length(dim(pr1)) != 3 || length(dim(pr2)) != 3) {
+        if (length(dim(pr1)) != 3 || length(dim(pr2)) != 3) {
             by_chr[[chr]] <- list(error = paste0('Chr ', chr, ': one or both arrays are not 3D'))
             next
         }
 
         dn1 <- dimnames(pr1)
         dn2 <- dimnames(pr2)
-        if(is.null(dn1) || is.null(dn2)) {
+        if (is.null(dn1) || is.null(dn2)) {
             by_chr[[chr]] <- list(error = paste0('Chr ', chr, ': one or both arrays have NULL dimnames'))
             next
         }
-        s1 <- if(is.null(dn1[[1]])) character(0) else dn1[[1]]
-        s2 <- if(is.null(dn2[[1]])) character(0) else dn2[[1]]
-        f1 <- if(is.null(dn1[[2]])) character(0) else dn1[[2]]
-        f2 <- if(is.null(dn2[[2]])) character(0) else dn2[[2]]
-        m1 <- if(is.null(dn1[[3]])) character(0) else dn1[[3]]
-        m2 <- if(is.null(dn2[[3]])) character(0) else dn2[[3]]
+        s1 <- if (is.null(dn1[[1]])) character(0) else dn1[[1]]
+        s2 <- if (is.null(dn2[[1]])) character(0) else dn2[[1]]
+        f1 <- if (is.null(dn1[[2]])) character(0) else dn1[[2]]
+        f2 <- if (is.null(dn2[[2]])) character(0) else dn2[[2]]
+        m1 <- if (is.null(dn1[[3]])) character(0) else dn1[[3]]
+        m2 <- if (is.null(dn2[[3]])) character(0) else dn2[[3]]
 
         s_only_1 <- setdiff(s1, s2)
         s_only_2 <- setdiff(s2, s1)
@@ -135,9 +135,9 @@ genoprobs_compare <- function(genoprobs_1,
             )
         )
 
-        # value comparison: align by names, then compare
+        # Align by names, then compare values.
         values_summary <- NULL
-        if(compare_values && length(s_common) > 0 && length(f_common) > 0 && length(m_common) > 0) {
+        if (compare_values && length(s_common) > 0 && length(f_common) > 0 && length(m_common) > 0) {
             i_s1 <- match(s_common, s1)
             i_s2 <- match(s_common, s2)
             i_f1 <- match(f_common, f1)
@@ -148,7 +148,9 @@ genoprobs_compare <- function(genoprobs_1,
             v1 <- pr1[i_s1, i_f1, i_m1, drop = FALSE]
             v2 <- pr2[i_s2, i_f2, i_m2, drop = FALSE]
 
-            stopifnot(identical(dim(v1), dim(v2)))
+            if (!identical(dim(v1), dim(v2))) {
+                stop('Aligned value arrays must have identical dimensions before comparison.')
+            }
             diff <- as.vector(v1) - as.vector(v2)
             finite_diff <- diff[is.finite(diff)]
             na1 <- is.na(v1)
@@ -160,12 +162,12 @@ genoprobs_compare <- function(genoprobs_1,
                 n_cells = length(v1),
                 n_compared = length(finite_diff),
                 na_mismatch = na_mismatch,
-                max_abs_diff = if(length(abs_diff)) max(abs_diff) else NA_real_,
-                mean_abs_diff = if(length(abs_diff)) mean(abs_diff) else NA_real_,
+                max_abs_diff = if (length(abs_diff)) max(abs_diff) else NA_real_,
+                mean_abs_diff = if (length(abs_diff)) mean(abs_diff) else NA_real_,
                 identical = na_mismatch == 0 && all(abs_diff <= tol)
             )
             chr_result$values <- values_summary
-        } else if(compare_values) {
+        } else if (compare_values) {
             chr_result$values <- list(
                 skipped = TRUE,
                 reason = 'No overlapping samples, founders, and/or markers for value comparison'
@@ -180,21 +182,27 @@ genoprobs_compare <- function(genoprobs_1,
                 length(chr_common), length(chr_only_1), length(chr_only_2)),
         sprintf('Chromosome order match: %s', chr_order_match)
     )
-    if(length(chr_common) > 0) {
+    if (length(chr_common) > 0) {
         order_diff <- vapply(by_chr, function(x) {
-            if(!is.null(x$error)) return(FALSE)
+            if (!is.null(x$error)) {
+                return(FALSE)
+            }
             !x$samples$order_match || !x$founders$order_match || !x$markers$order_match
         }, FALSE)
         n_order_diff <- sum(order_diff)
         summary_lines <- c(summary_lines,
                           sprintf('Chr with dimension-order mismatch: %d', n_order_diff))
-        if(compare_values) {
+        if (compare_values) {
             n_ident <- sum(vapply(by_chr, function(x) {
-                if(is.null(x$values) || isTRUE(x$values$skipped)) return(NA)
+                if (is.null(x$values) || isTRUE(x$values$skipped)) {
+                    return(NA)
+                }
                 isTRUE(x$values$identical)
             }, NA), na.rm = TRUE)
             n_total <- sum(vapply(by_chr, function(x) {
-                if(is.null(x$values) || isTRUE(x$values$skipped)) return(0)
+                if (is.null(x$values) || isTRUE(x$values$skipped)) {
+                    return(0)
+                }
                 1
             }, 0))
             summary_lines <- c(summary_lines,

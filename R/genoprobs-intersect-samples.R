@@ -23,43 +23,50 @@
 #'
 #' @export
 genoprobs_intersect_samples <- function(genoprobs_1, genoprobs_2, sort = TRUE) {
-    # use only chromosomes present in both objects
+    # Use only chromosomes present in both objects.
     common_chr <- intersect(names(genoprobs_1), names(genoprobs_2))
-    if(!length(common_chr)) {
+    if (!length(common_chr)) {
         stop('No overlapping chromosomes between the two genoprobs objects.')
     }
 
-    # samples that appear on every common chromosome in each object
-    # use [[chr]] only; avoid [common_chr] which triggers qtl2 subset() and can error
-    s1_per_chr <- setNames(lapply(common_chr, function(chr) rownames(genoprobs_1[[chr]])), common_chr)
-    s2_per_chr <- setNames(lapply(common_chr, function(chr) rownames(genoprobs_2[[chr]])), common_chr)
-    if(any(vapply(s1_per_chr, is.null, NA)) || any(vapply(s2_per_chr, is.null, NA))) {
+    # Samples must appear on every shared chromosome in each object.
+    # Use `[[chr]]` only; avoid `gp[common_chr]`, which can trigger qtl2 subsetting.
+    s1_per_chr <- setNames(
+        lapply(common_chr, function(chr) rownames(genoprobs_1[[chr]])),
+        common_chr
+    )
+    s2_per_chr <- setNames(
+        lapply(common_chr, function(chr) rownames(genoprobs_2[[chr]])),
+        common_chr
+    )
+    if (any(vapply(s1_per_chr, is.null, NA)) || any(vapply(s2_per_chr, is.null, NA))) {
         stop('One or both genoprobs objects have NULL sample names on at least one chromosome.')
     }
 
     common_in_1 <- Reduce(intersect, s1_per_chr)
     common_in_2 <- Reduce(intersect, s2_per_chr)
     common <- intersect(common_in_1, common_in_2)
-    if(!length(common)) {
+    if (!length(common)) {
         stop('No overlapping samples between the two genoprobs objects (after requiring samples to appear on all chromosomes).')
     }
 
-    if(sort) common <- sort(common)
+    if (sort) {
+        common <- sort(common)
+    }
 
-    # record which samples were dropped from each object for reporting
+    # Record which samples were dropped from each object for reporting.
     all_in_1 <- Reduce(union, s1_per_chr)
     all_in_2 <- Reduce(union, s2_per_chr)
     dropped1 <- setdiff(all_in_1, common)
     dropped2 <- setdiff(all_in_2, common)
 
-    # subset a genoprobs object to given samples on common chromosomes only
-    # build result with new list and [[chr]] only; avoid gp[common_chr] which triggers qtl2 subset()
+    # Subset one genoprobs object to the common samples on the shared chromosomes.
     subset_to <- function(gp, samples) {
         out <- setNames(vector('list', length(common_chr)), common_chr)
-        for(chr in common_chr) {
+        for (chr in common_chr) {
             pr <- gp[[chr]]
             i <- match(samples, rownames(pr))
-            if(anyNA(i)) {
+            if (anyNA(i)) {
                 stop('Sample missing on chromosome ', chr, '; ensure samples appear on all chromosomes.')
             }
             out[[chr]] <- pr[i, , , drop = FALSE]

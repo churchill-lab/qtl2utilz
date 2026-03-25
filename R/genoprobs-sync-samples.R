@@ -36,7 +36,7 @@ genoprobs_sync_samples <- function(genoprobs,
     sample_order <- match.arg(sample_order)
     samples_df <- resolve_col_samples(samples_df)
 
-    if(!'sample_id' %in% names(samples_df)) {
+    if (!'sample_id' %in% names(samples_df)) {
         stop('samples_df must contain a sample_id column (or an accepted alias).')
     }
 
@@ -49,7 +49,7 @@ genoprobs_sync_samples <- function(genoprobs,
     # get sample IDs from genoprobs (must appear on all chromosomes)
     # use [[chr]] only; avoid [common_chr] which triggers qtl2 subset()
     common_chr <- names(genoprobs_list)
-    if(!length(common_chr)) {
+    if (!length(common_chr)) {
         stop('genoprobs has no chromosomes.')
     }
 
@@ -57,7 +57,7 @@ genoprobs_sync_samples <- function(genoprobs,
         lapply(common_chr, function(chr) rownames(genoprobs_list[[chr]])),
         common_chr
     )
-    if(any(vapply(gp_samples_per_chr, is.null, NA))) {
+    if (any(vapply(gp_samples_per_chr, is.null, NA))) {
         stop('genoprobs has NULL sample names on at least one chromosome.')
     }
 
@@ -66,41 +66,41 @@ genoprobs_sync_samples <- function(genoprobs,
 
     # find intersection
     common_samples <- intersect(gp_samples, samples_df_ids)
-    if(!length(common_samples)) {
+    if (!length(common_samples)) {
         stop('No overlapping samples between genoprobs and samples_df.')
     }
 
-    # determine final order based on sample_order parameter
-    if(sample_order == 'samples') {
-        # preserve order from samples_df (keep samples_df order, filter to common)
+    # Determine final order based on `sample_order`.
+    if (sample_order == 'samples') {
+        # Preserve the order from `samples_df`.
         common_samples <- samples_df_ids[samples_df_ids %in% common_samples]
-    } else if(sample_order == 'genoprobs') {
-        # preserve order from genoprobs
+    } else if (sample_order == 'genoprobs') {
+        # Preserve the order from `genoprobs`.
         common_samples <- gp_samples[gp_samples %in% common_samples]
-    } else { # sample_order == 'alphabetical'
+    } else {
         common_samples <- sort(common_samples)
     }
 
-    # record which samples were dropped
+    # Record which samples were dropped.
     dropped_from_genoprobs <- setdiff(gp_samples, samples_df_ids)
     dropped_from_samples_df <- setdiff(samples_df_ids, gp_samples)
 
-    # subset genoprobs to common samples
+    # Subset genoprobs to the common samples.
     out <- setNames(vector('list', length(common_chr)), common_chr)
-    for(chr in common_chr) {
+    for (chr in common_chr) {
         pr <- genoprobs_list[[chr]]
-        if(length(dim(pr)) != 3) {
+        if (length(dim(pr)) != 3) {
             stop(sprintf('Chr %s genoprobs is not a 3D array.', chr))
         }
 
         gp_chr_samples <- rownames(pr)
-        if(is.null(gp_chr_samples)) {
+        if (is.null(gp_chr_samples)) {
             stop(sprintf('Chr %s genoprobs has NULL sample names.', chr))
         }
 
-        # match to get indices in genoprobs order, then reorder to common_samples order
+        # Match into genoprobs order, then reorder to `common_samples`.
         idx <- match(common_samples, gp_chr_samples)
-        if(anyNA(idx)) {
+        if (anyNA(idx)) {
             stop(sprintf('Sample missing on chromosome %s; ensure samples appear on all chromosomes.', chr))
         }
         out[[chr]] <- pr[idx, , , drop = FALSE]
@@ -110,11 +110,11 @@ genoprobs_sync_samples <- function(genoprobs,
     attributes(out) <- attributes(genoprobs)
     class(out) <- class(genoprobs)
 
-    # subset samples_df to only samples present in genoprobs
+    # Subset `samples_df` to the samples retained in genoprobs.
     samples_out <- samples_df[samples_df$sample_id %in% common_samples, , drop = FALSE]
-    # remove duplicates if any, keeping first occurrence (preserves order)
+    # Remove duplicates, keeping the first occurrence.
     samples_out <- samples_out[!duplicated(samples_out$sample_id), , drop = FALSE]
-    # reorder to match common_samples order
+    # Reorder to match `common_samples`.
     samples_out <- samples_out[match(common_samples, samples_out$sample_id), , drop = FALSE]
 
     list(

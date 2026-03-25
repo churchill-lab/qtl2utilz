@@ -18,10 +18,10 @@
 # Resolve one canonical key to an existing column name.
 # Internal utility used by the wrapper helpers below.
 .resolve_col <- function(df, key, aliases = .qtl2utilz_aliases) {
-    if(!is.data.frame(df)) {
+    if (!is.data.frame(df)) {
         stop('Expected a data.frame for column resolution.')
     }
-    if(!key %in% names(aliases)) {
+    if (!key %in% names(aliases)) {
         stop('Unknown alias key: ', key)
     }
 
@@ -31,19 +31,19 @@
     hit_idx <- which(norm_names %in% norm_candidates)
     hits <- names(df)[hit_idx]
 
-    if(length(hits) == 1) {
-        return(hits)
+    if (length(hits) == 1) {
+        hits
     }
-    if(length(hits) == 0) {
+    if (length(hits) == 0) {
         stop(
-            'Missing column for "', key, '". Accepted aliases: ',
+            'Missing column for \'', key, '\'. Accepted aliases: ',
             paste(candidates, collapse = ', '),
             ' (case-insensitive; punctuation-insensitive).'
         )
     }
 
     stop(
-        'Ambiguous columns for "', key, '": ',
+        'Ambiguous columns for \'', key, '\': ',
         paste(hits, collapse = ', '),
         '. Keep only one of these aliases.'
     )
