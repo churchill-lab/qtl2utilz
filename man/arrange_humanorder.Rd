@@ -2,19 +2,68 @@
 % Please edit documentation in R/arrange-humanorder.R
 \name{arrange_humanorder}
 \alias{arrange_humanorder}
-\title{Sort a data frame by natural (human) order on one column}
+\title{Arrange rows in human/natural sort order across one or more columns}
 \usage{
-arrange_humanorder(df, col)
+arrange_humanorder(df, ..., .dir = "asc")
 }
 \arguments{
-\item{df}{A data frame.}
+\item{df}{A data frame or tibble.}
 
-\item{col}{Unquoted column name (tidy-eval), as in \code{dplyr::arrange()}.}
+\item{...}{Unquoted column names to sort by, in priority order.
+The first column is the primary sort key, the second breaks ties
+within the first, and so on.}
+
+\item{.dir}{Sort direction. Either:
+- a single string, `"asc"` or `"desc"`, applied to all columns, or
+- a character vector with one value per column, each being
+  `"asc"` or `"desc"`.}
 }
 \value{
-\code{df} with rows reordered by mixed/natural order on \code{col}.
+A data frame with rows reordered according to the requested
+  human-sort order.
 }
 \description{
-Uses \code{gtools::mixedorder()} so identifiers like \code{F1}, \code{F11},
-\code{F100} sort in intuitive order (not lexicographic).
+Sorts a data frame using "human" ordering rather than strict
+lexicographic ordering. For example, values like `sample2`, `sample10`,
+and `sample100` will sort in natural order rather than plain character
+order.
+}
+\details{
+This function accepts any number of columns and supports either:
+- one direction applied to all columns, or
+- one direction per column
+
+
+The function works by:
+1. Capturing the requested columns with tidy evaluation.
+2. Pulling each column from `df` and converting it to character.
+3. Converting each column to a mixed/natural rank using
+   [gtools::mixedrank()].
+4. Negating the rank for descending columns.
+5. Combining all ranking vectors with [base::order()] and using the
+   resulting row positions inside [dplyr::slice()].
+
+This is useful for columns containing embedded numbers such as:
+- `M1`, `M2`, `M10`
+- `sample_1`, `sample_2`, `sample_11`
+- chromosome-like labels such as `chr1`, `chr2`, `chr10`
+}
+\examples{
+df <- tibble::tibble(
+  sex = c("F", "M", "F", "M"),
+  sample_id = c("M10", "M2", "M1", "M11")
+)
+
+# One-column natural sort
+arrange_humanorder(df, sample_id)
+
+# Multiple columns, all ascending
+arrange_humanorder(df, sex, sample_id)
+
+# Multiple columns, all descending
+arrange_humanorder(df, sex, sample_id, .dir = "desc")
+
+# Mixed directions by column
+arrange_humanorder(df, sex, sample_id, .dir = c("asc", "desc"))
+
 }
