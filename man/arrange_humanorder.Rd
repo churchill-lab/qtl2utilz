@@ -25,8 +25,7 @@ A data frame with rows reordered according to the requested
 \description{
 Sorts a data frame using "human" ordering rather than strict
 lexicographic ordering. For example, values like `sample2`, `sample10`,
-and `sample100` will sort in natural order rather than plain character
-order.
+and `sample100` sort in natural order rather than plain character order.
 }
 \details{
 This function accepts any number of columns and supports either:
@@ -34,19 +33,14 @@ This function accepts any number of columns and supports either:
 - one direction per column
 
 
-The function works by:
-1. Capturing the requested columns with tidy evaluation.
-2. Pulling each column from `df` and converting it to character.
-3. Converting each column to a mixed/natural rank using
-   [gtools::mixedrank()].
-4. Negating the rank for descending columns.
-5. Combining all ranking vectors with [base::order()] and using the
-   resulting row positions inside [dplyr::slice()].
+The function works by repeatedly sorting the data frame from the
+last requested column to the first requested column. This lets earlier
+columns remain the highest-priority sort keys while still allowing
+natural/human ordering within each column.
 
-This is useful for columns containing embedded numbers such as:
-- `M1`, `M2`, `M10`
-- `sample_1`, `sample_2`, `sample_11`
-- chromosome-like labels such as `chr1`, `chr2`, `chr10`
+Each selected column is converted to character before calling
+[gtools::mixedorder()], so values like `M2`, `M10`, and `M100`
+sort as a human would expect.
 }
 \examples{
 df <- tibble::tibble(

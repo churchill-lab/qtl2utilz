@@ -2,8 +2,7 @@
 #'
 #' Sorts a data frame using "human" ordering rather than strict
 #' lexicographic ordering. For example, values like `sample2`, `sample10`,
-#' and `sample100` will sort in natural order rather than plain character
-#' order.
+#' and `sample100` sort in natural order rather than plain character order.
 #'
 #' This function accepts any number of columns and supports either:
 #' - one direction applied to all columns, or
@@ -22,19 +21,14 @@
 #'   human-sort order.
 #'
 #' @details
-#' The function works by:
-#' 1. Capturing the requested columns with tidy evaluation.
-#' 2. Pulling each column from `df` and converting it to character.
-#' 3. Converting each column to a mixed/natural rank using
-#'    [gtools::mixedrank()].
-#' 4. Negating the rank for descending columns.
-#' 5. Combining all ranking vectors with [base::order()] and using the
-#'    resulting row positions inside [dplyr::slice()].
+#' The function works by repeatedly sorting the data frame from the
+#' last requested column to the first requested column. This lets earlier
+#' columns remain the highest-priority sort keys while still allowing
+#' natural/human ordering within each column.
 #'
-#' This is useful for columns containing embedded numbers such as:
-#' - `M1`, `M2`, `M10`
-#' - `sample_1`, `sample_2`, `sample_11`
-#' - chromosome-like labels such as `chr1`, `chr2`, `chr10`
+#' Each selected column is converted to character before calling
+#' [gtools::mixedorder()], so values like `M2`, `M10`, and `M100`
+#' sort as a human would expect.
 #'
 #' @examples
 #' df <- tibble::tibble(
@@ -56,52 +50,44 @@
 #'
 #' @export
 arrange_humanorder <- function(df, ..., .dir = "asc") {
-    # Capture the unquoted column names supplied through ...
+    # Capture unquoted column names from ...
     cols <- rlang::enquos(...)
 
-    # If no columns were given, return the input unchanged
+    # If no columns were provided, return the input unchanged
     if (length(cols) == 0) {
         return(df)
     }
 
-    # If a single direction was supplied, recycle it across all columns
+    # If one direction was supplied, recycle it across all columns
     if (length(.dir) == 1) {
         .dir <- rep(.dir, length(cols))
     }
 
-    # Ensure .dir is either length 1 or matches the number of columns
+    # Validate direction length
     if (length(.dir) != length(cols)) {
         stop("`.dir` must be length 1 or the same length as the number of columns.")
     }
 
-    # Standardize case before validation
+    # Standardize case
     .dir <- tolower(.dir)
 
-    # Validate accepted direction values
+    # Validate direction values
     if (!all(.dir %in% c("asc", "desc"))) {
         stop("`.dir` must contain only 'asc' or 'desc'.")
     }
 
-    # Pull each selected column from df and coerce to character so
-    # gtools::mixedrank() can apply natural/human ordering consistently
-    order_inputs <- purrr::map(cols, ~ {
-        as.character(dplyr::pull(df, !!.x))
-    })
+    # Sort from the last column to the first column so that the first
+    # column remains the highest-priority sort key
+    for (i in rev(seq_along(cols))) {
+        values_i <- as.character(dplyr::pull(df, !!cols[[i]]))
 
-    # Convert each column to a ranking vector suitable for base::order().
-    # For descending columns, negate the rank so larger values come first.
-    for (i in seq_along(order_inputs)) {
-        rank_i <- gtools::mixedrank(order_inputs[[i]])
+        ord_i <- gtools::mixedorder(
+            values_i,
+            decreasing = (.dir[i] == "desc")
+        )
 
-        if (.dir[i] == "desc") {
-            rank_i <- -rank_i
-        }
-
-        order_inputs[[i]] <- rank_i
+        df <- dplyr::slice(df, ord_i)
     }
 
-    # Combine all ranking vectors into one row order and
-    # return df with rows rearranged accordingly
-    df |>
-        dplyr::slice(do.call(order, order_inputs))
+    df
 }
